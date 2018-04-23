@@ -2,20 +2,29 @@
 # -*- coding: utf-8 -*-
 
 import tree
+from sentence import Sentence, Token
+
 
 class Parser(object):
     def __init__(self, sentence):
-        self.__stack = [(0, None)] #root
-        self.__queue = [id_and_word for id_and_word in enumerate(sentence.split(), 1)] #lista di tuple (id, word)
-        self.__tree = tree.tree(sentence=sentence) #numero di nodi pari al numero di parole
-        self.__dependencies = dict() #inutile
+        self.__stack = [Token(0)] #root
+        self.__queue = [token for token in sentence]
+        self.__tree = tree.tree(sentence, False) #numero di nodi pari al numero di parole
         self.__history = list()
+
+    def __str__(self):
+        return "-> stack: {}\nqueue: {}".format(
+        [token.tid for token in self.__stack], [token.tid for token in self.__queue])
+
 
     def get_tree(self):
         return self.__tree
 
-    def print_deps(self):
-        self.__tree.visit()
+    def get_stack(self):
+        return list(self.__stack)
+
+    def get_queue(self):
+        return list(self.__queue)
 
     def shift(self):
         """ Estrae prossima parola dalla lista e la pusha sullo stack """
@@ -29,7 +38,7 @@ class Parser(object):
         in cima allo stack, rimuovendola dalla pila."""
         dependent = self.__stack.pop()
         head = self.__queue[0]
-        self.__tree.add_dependency(head[0], dependent[0], opt) #uso gli id
+        self.__tree.add_dependency(head.tid, dependent.tid, opt) #uso gli id
         self.__history.append("left_{}".format(opt))
 
     def right(self, opt):
@@ -40,7 +49,7 @@ class Parser(object):
         head = self.__stack.pop()
         self.__queue.insert(0, head)
 
-        self.__tree.add_dependency(head[0], dependent[0], opt) #uso gli id
+        self.__tree.add_dependency(head.tid , dependent.tid, opt) #uso gli id
         self.__history.append("right_{}".format(opt))
 
 
@@ -49,10 +58,10 @@ class Parser(object):
 
     #<partially_useless_methods>  (o forse no...)
     def next_stack(self):
-        return self.__stack[-1]
+        return self.__stack[-1] if self.stack_size() > 0 else False
 
     def next_queue(self):
-        return self.__queue[0]
+        return self.__queue[0] if self.queue_size() > 0 else False
 
     def stack_size(self):
         return len(self.__stack)
@@ -67,4 +76,58 @@ class Parser(object):
     def is_final_state(self):
         """Condizione di terminazione del parsing: lo stack contiene solo la
         radice e la coda è vuota, in quanto tutte le parole sono state analizzate"""
-        return len(self.__queue) == 0 and self.__stack == [(0, None)]
+        return len(self.__queue) == 0 and len(self.__stack) == 1
+
+
+
+class SentenceTransitions(object):
+    def __init__(self, sentence, tree):
+        self.sentence = sentence
+        self.states = None
+
+        parser = Parser(sentence)
+        transitions = list()
+
+        while not parser.is_final_state():
+            do_shift = True
+
+            transitions.append(ParserState(parser))
+
+            if parser.stack_size() > 0 and parser.queue_size() > 0:
+                q, s = parser.next_queue().tid, parser.next_stack().tid
+                #verifico applicabilità left
+                rel = tree.dependency_exists(q, s)
+                if rel:
+                    parser.left(rel)
+                    do_shift = False
+                else:
+                    #verifico applicabilità right
+                    rel = tree.dependency_exists(s, q)
+                    if rel and len(tree.get_dependencies_by_head(q)) == len(parser.get_dependencies_by_head(q)):
+                        parser.right(rel)
+                        do_shift = False
+            #verifico applicabilità shift
+            if do_shift and parser.queue_size() > 0:
+                parser.shift()
+
+        self.states = zip(transitions, parser.history())
+
+
+
+class ParserState(object):
+    def __init__(self, parser):
+        stack, queue = parser.get_stack(), parser.get_queue()
+        tree = parser.get_tree()
+
+        self.s0 = stack[-1] if len(stack) > 0 else Token(None)
+        self.s1 = stack[-2] if len(stack) > 1 else Token(None)
+        self.q0 = queue[0] if len(queue) > 0 else Token(None)
+        self.q1 = queue[1] if len(queue) > 1 else Token(None)
+        self.q2 = queue[2] if len(queue) > 2 else Token(None)
+        self.q3 = queue[3] if len(queue) > 3 else Token(None)
+
+        #head del top dello stack
+        self.s0h = tree.get_head(self.s0.tid)[0] if self.s0.tid else Token(None)
+        self.s0l = tree.get_leftmost_child(self.s0.tid)
+        self.s0r = tree.get_rightmost_child(self.s0.tid)
+        self.q0l = tree.get_leftmost_child(self.q0.tid)
