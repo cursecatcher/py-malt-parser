@@ -20,33 +20,14 @@ class tree(object):
             if set_dependencies:
                 self.add_dependency(head, index, relation_type)
 
+    def sort(self):
+        """ Ordina le dipendenze in maniera crescente in base all'id del nodo.
+        Il nodo con indice minore il leftmost child, quello con indice maggiore è il
+        rightmost child"""
 
-    # def __init__(self, sentence=None, lines=None):
-    #     """ Initialize a dependency tree from a treebank's tree or from a sentence (list of (word, pos))"""
-    #     self.nodes = [token_node(id=0)] #root dell'albero. NB: word e pos di nodes[0] non sono definiti
-    #     #un po' ridondante, ma permette di recuperare velocemente l'head di un nodo
-    #     #contiene tuple (w_h, w_d, dependency_type)
-    #     self.dependencies = list()
-    #
-    #     if lines is not None:
-    #         #crea albero completo a partire da albero su file
-    #         self.nodes.extend([token_node(id=index+1) for index in range(len(lines))])
-    #
-    #         for index, line in enumerate(lines, 1):
-    #             #inizializza nodo
-    #             curr = self.nodes[index]
-    #             curr.word = line[1]
-    #             curr.lemma = line[2]
-    #             curr.pos = line[3]
-    #             #assegna dipendenza
-    #             head = int(line[6])
-    #             relation = self.__map_relation(line[7]) #relazione head->dependent
-    #
-    #             self.add_dependency(head, index, relation)
-    #
-    #     elif sentence is not None:
-    #         #crea nodi dell'albero, le dipendenze verranno aggiunte a runtime
-    #         self.nodes.extend([token_node(index, token[0], token[1], token[2]) for index, token in enumerate(sentence, 1)])
+        for node in self.nodes:
+            node.siblings.sort(key=lambda x: x[0].tid if x[0] is not None else -1)
+        return self
 
     def get_sentence(self):
         """ Restituisce una lista rappresentante la frase presente nell'albero.
@@ -61,11 +42,11 @@ class tree(object):
 
     def get_leftmost_child(self, tid):
         siblings = self.nodes[tid].siblings if tid else list()
-        return siblings[0] if len(siblings) > 0 else sentence.Token(None)
+        return siblings[0] if len(siblings) > 0 else None
 
     def get_rightmost_child(self, tid):
         siblings = self.nodes[tid].siblings if tid else list()
-        return siblings[-1] if len(siblings) > 0 else sentence.Token(None)
+        return siblings[-1] if len(siblings) > 0 else None
 
     def get_head(self, id_node):
         """Restituisce l'head e il tipo di dipendenza del nodo dimmerda passato come parametro"""

@@ -3,6 +3,7 @@
 
 import tree
 from sentence import Sentence, Token
+from features import Features
 
 
 class Parser(object):
@@ -92,6 +93,7 @@ class SentenceTransitions(object):
             do_shift = True
 
             transitions.append(ParserState(parser))
+    #        print(transitions[-1])
 
             if parser.stack_size() > 0 and parser.queue_size() > 0:
                 q, s = parser.next_queue().tid, parser.next_stack().tid
@@ -119,15 +121,22 @@ class ParserState(object):
         stack, queue = parser.get_stack(), parser.get_queue()
         tree = parser.get_tree()
 
-        self.s0 = stack[-1] if len(stack) > 0 else Token(None)
-        self.s1 = stack[-2] if len(stack) > 1 else Token(None)
-        self.q0 = queue[0] if len(queue) > 0 else Token(None)
-        self.q1 = queue[1] if len(queue) > 1 else Token(None)
-        self.q2 = queue[2] if len(queue) > 2 else Token(None)
-        self.q3 = queue[3] if len(queue) > 3 else Token(None)
+        self.s0 = stack[-1] if len(stack) > 0 else None
+        self.s1 = stack[-2] if len(stack) > 1 else None
+        self.q0 = queue[0] if len(queue) > 0 else None
+        self.q1 = queue[1] if len(queue) > 1 else None
+        self.q2 = queue[2] if len(queue) > 2 else None
+        self.q3 = queue[3] if len(queue) > 3 else None
 
         #head del top dello stack
-        self.s0h = tree.get_head(self.s0.tid)[0] if self.s0.tid else Token(None)
-        self.s0l = tree.get_leftmost_child(self.s0.tid)
-        self.s0r = tree.get_rightmost_child(self.s0.tid)
-        self.q0l = tree.get_leftmost_child(self.q0.tid)
+        self.s0h = tree.get_head(self.s0.tid)[0] if self.s0 else None
+        self.s0l = tree.get_leftmost_child(self.s0.tid) if self.s0 else None
+        self.s0r = tree.get_rightmost_child(self.s0.tid) if self.s0 else None
+        self.q0l = tree.get_leftmost_child(self.q0.tid) if self.q0 else None
+
+
+
+#        print(Token(None))
+
+    def __str__(self):
+        return "s0: {}\ns1: {}\nq0: {}\nq1: {}\nq2: {}\nq3: {}\ns0h: {}\ns0l: {}\ns0r: {}\nq0l: {}".format(self.s0, self.s1, self.q0, self.q1, self.q2, self.q3, self.s0h, self.s0l, self.s0r, self.q0l)

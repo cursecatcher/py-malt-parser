@@ -1,4 +1,5 @@
-
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 class Sentence(object): #e se ereditasse da list???
     def __init__(self):
