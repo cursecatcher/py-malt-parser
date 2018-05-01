@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import enum
+
+class RelationType(enum.Enum):
+    NONAME = 1
+    NSUBJ = 2
+    DOBJ = 3
+
+
 class Sentence(object): #e se ereditasse da list???
     def __init__(self):
         self.__tokens = list()
@@ -75,7 +83,14 @@ class Token(object):
 
     @dtype.setter
     def dtype(self, dtype):
-        self.__token["dtype"] = dtype if dtype in ("nsubj", "dobj", "root", None) else "noname"
+        if dtype == "nsubj":
+            dtype = RelationType.NSUBJ
+        elif dtype == "dobj":
+            dtype = RelationType.DOBJ
+        else:
+            dtype = RelationType.NONAME
+        self.__token["dtype"] = dtype
+    #    self.__token["dtype"] = dtype if dtype in ("nsubj", "dobj", "root", None) else "noname"
 
     def __str__(self):
         return str(self.__token)

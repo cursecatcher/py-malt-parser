@@ -2,8 +2,36 @@
 # -*- coding: utf-8 -*-
 
 import tree
-from sentence import Sentence, Token
+from sentence import *
 from features import Features
+
+import enum
+
+class ParserAction(enum.Enum):
+    SHIFT = 1
+    LEFT = 2
+    RIGHT = 3
+    LEFT_NSUBJ = 4
+    RIGHT_NSUBJ = 5
+    LEFT_DOBJ = 6
+    RIGHT_DOBJ = 7
+
+    @classmethod
+    def get_parser_action(cls, action, relation):
+        if action == "left":
+            if relation is RelationType.NSUBJ:
+                return ParserAction.LEFT_NSUBJ
+            else:
+                return ParserAction.LEFT_DOBJ if relation is RelationType.DOBJ else ParserAction.LEFT
+        elif action == "right":
+            if relation is RelationType.NSUBJ:
+                return ParserAction.RIGHT_NSUBJ
+            else:
+                return ParserAction.RIGHT_DOBJ if relation is RelationType.DOBJ else ParserAction.RIGHT
+
+        return ParserAction.SHIFT
+
+
 
 
 class Parser(object):
@@ -32,7 +60,7 @@ class Parser(object):
         self.__stack.append(self.__queue[0])
         self.__queue = self.__queue[1:]
 
-        self.__history.append("shift")
+        self.__history.append(ParserAction.SHIFT)
 
     def left(self, opt):
         """ Crea dipendenza tra la prossima parola nella lista e quella
@@ -40,7 +68,8 @@ class Parser(object):
         dependent = self.__stack.pop()
         head = self.__queue[0]
         self.__tree.add_dependency(head.tid, dependent.tid, opt) #uso gli id
-        self.__history.append("left_{}".format(opt))
+        self.__history.append(ParserAction.get_parser_action("left", opt))
+#        self.__history.append("left_{}".format(opt))
 
     def right(self, opt):
         """ Crea dipendenza tra la parola in cima allo stack e la prossima nella lista.
@@ -51,7 +80,8 @@ class Parser(object):
         self.__queue.insert(0, head)
 
         self.__tree.add_dependency(head.tid , dependent.tid, opt) #uso gli id
-        self.__history.append("right_{}".format(opt))
+        self.__history.append(ParserAction.get_parser_action("right", opt))
+#        self.__history.append("right_{}".format(opt))
 
 
     def get_dependencies_by_head(self, head):
@@ -73,6 +103,9 @@ class Parser(object):
 
     def history(self):
         return self.__history
+
+    def __map_action(self, opt):
+        pass
 
     def is_final_state(self):
         """Condizione di terminazione del parsing: lo stack contiene solo la
