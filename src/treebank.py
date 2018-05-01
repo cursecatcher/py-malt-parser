@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import tree
-from parser import *
+#from parser import Parser
 from sentence import Sentence, Token
-from features import FeatureEncoder
+#from features import FeatureEncoder
 
 from timeit import default_timer as timer
 
@@ -18,9 +18,15 @@ def format_time(time):
 
 
 class TreebankParser(object):
-    def __init__(self):
+    def __init__(self, tb_file):
         """ """
-        self.__encoder = FeatureEncoder()
+#        self.__encoder = FeatureEncoder()
+        self.__sentences = self.__get_sentence(tb_file) #è un generatore :D
+        print("Init tbparser: {}".format(self.__sentences))
+
+    def __iter__(self):
+        for sentence in self.__sentences:
+            yield sentence, tree.tree(sentence)
 #
 #         print("Extracting features...", flush=True, end="")
 #         start = timer()
@@ -53,9 +59,11 @@ class TreebankParser(object):
 
         for sentence in self.__get_sentence(filename):
             dependency_tree = tree.tree(sentence).sort()
-            transitions = SentenceTransitions(sentence, dependency_tree)
+            transitions = Parser.get_transitions(sentence, dependency_tree)
 
-            for t, label in transitions.states:
+#            transitions = SentenceTransitions(sentence, dependency_tree)
+
+            for t, label in transitions:
                 examples.append(t)
                 labels.append(label)
         #
@@ -74,6 +82,7 @@ class TreebankParser(object):
     def __get_sentence(self, filename):
         """Legge una frase dal treebank e la restituisce sottoforma di lista di liste;
         vi è una sottolista per ciascun token della frase, e riporta informazioni quali lemma, part of speech etc"""
+
         sentence = Sentence()
 
         with open(filename) as f:

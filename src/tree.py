@@ -74,18 +74,6 @@ class tree(object):
 
         return res
 
-##############questo funziona
-        # res = False
-        # #questa roba si può riscrivere meglio con self.dependencies
-        # for node, relation in self.nodes[head].siblings:
-        #     if node.id == dep:
-        #         if rel is None or rel == relation:
-        #             res = relation
-        #         break
-        #
-        # return res
-############fine parte funzionante
-
     def get_dependencies_by_head(self, head):
         return self.nodes[head].siblings
 
@@ -102,9 +90,6 @@ class tree(object):
     def __str__(self):
         return "\n".join([str(node) for node in self.nodes])
 
-    # def visit(self):
-    #     for w in self.nodes:
-    #         print(w)
 
 
 #class token_node(object):

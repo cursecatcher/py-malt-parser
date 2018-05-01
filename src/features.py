@@ -42,6 +42,7 @@ class FeatureEncoder(object):
         self.__ohe = preprocessing.OneHotEncoder(handle_unknown="ignore")
 
     def encodeFeature(self, configuration):
+        ### da usare in fase di predict
         fv = self.encode(configuration)
         return self.__ohe.transform([fv]) #potrebbe dare problemi
 
