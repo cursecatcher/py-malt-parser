@@ -5,6 +5,12 @@ import tree
 from sentence import *
 from features import Features
 
+#oracle
+from treebank import TreebankParser
+from features import FeatureEncoder
+from sklearn.externals import joblib
+from sklearn.linear_model import LogisticRegression
+
 import enum
 
 class ParserAction(enum.Enum):
@@ -32,14 +38,23 @@ class ParserAction(enum.Enum):
         return ParserAction.SHIFT
 
 
-
-
 class Parser(object):
-    def __init__(self, sentence):
+    def __init__(self):
+        self.__oracle = Oracle()
+        self.__stack = list()#[Token(0)] #root
+        self.__queue = list()#[token for token in sentence]
+        self.__tree = list()#tree.tree(sentence, False) #numero di nodi pari al numero di parole
+        self.__history = list()
+
+    def init(self, sentence):
         self.__stack = [Token(0)] #root
         self.__queue = [token for token in sentence]
         self.__tree = tree.tree(sentence, False) #numero di nodi pari al numero di parole
         self.__history = list()
+        return self
+
+    def fit_oracle(self, training_set):
+        self.__oracle.fit(training_set)
 
     def __str__(self):
         return "-> stack: {}\nqueue: {}".format(
@@ -59,7 +74,6 @@ class Parser(object):
         """ Estrae prossima parola dalla lista e la pusha sullo stack """
         self.__stack.append(self.__queue[0])
         self.__queue = self.__queue[1:]
-
         self.__history.append(ParserAction.SHIFT)
 
     def left(self, opt):
@@ -69,7 +83,7 @@ class Parser(object):
         head = self.__queue[0]
         self.__tree.add_dependency(head.tid, dependent.tid, opt) #uso gli id
         self.__history.append(ParserAction.get_parser_action("left", opt))
-#        self.__history.append("left_{}".format(opt))
+
 
     def right(self, opt):
         """ Crea dipendenza tra la parola in cima allo stack e la prossima nella lista.
@@ -78,11 +92,8 @@ class Parser(object):
         dependent, self.__queue = self.__queue[0], self.__queue[1:]
         head = self.__stack.pop()
         self.__queue.insert(0, head)
-
         self.__tree.add_dependency(head.tid , dependent.tid, opt) #uso gli id
         self.__history.append(ParserAction.get_parser_action("right", opt))
-#        self.__history.append("right_{}".format(opt))
-
 
     def get_dependencies_by_head(self, head):
         return self.__tree.get_dependencies_by_head(head)
@@ -104,29 +115,21 @@ class Parser(object):
     def history(self):
         return self.__history
 
-    def __map_action(self, opt):
-        pass
 
     def is_final_state(self):
         """Condizione di terminazione del parsing: lo stack contiene solo la
         radice e la coda è vuota, in quanto tutte le parole sono state analizzate"""
         return len(self.__queue) == 0 and len(self.__stack) == 1
 
-
-
-class SentenceTransitions(object):
-    def __init__(self, sentence, tree):
-        self.sentence = sentence
-        self.states = None
-
-        parser = Parser(sentence)
+    @staticmethod
+    def get_transitions(sentence, tree):
+        parser = Parser().init(sentence)
         transitions = list()
 
         while not parser.is_final_state():
             do_shift = True
 
             transitions.append(ParserState(parser))
-    #        print(transitions[-1])
 
             if parser.stack_size() > 0 and parser.queue_size() > 0:
                 q, s = parser.next_queue().tid, parser.next_stack().tid
@@ -145,7 +148,45 @@ class SentenceTransitions(object):
             if do_shift and parser.queue_size() > 0:
                 parser.shift()
 
-        self.states = zip(transitions, parser.history())
+        return (transitions, parser.history())
+
+class Oracle(object):
+    def __init__(self):
+        self.__model = LogisticRegression(multi_class="ovr", solver="newton-cg")
+        self.__encoder = FeatureEncoder()
+
+    @property
+    def encoder(self):
+        return self.__encoder
+
+
+    def fit(self, training_set):
+        """Addestra l'oracolo con le frasi di un treebank"""
+
+        examples, labels = list(), list()
+        #estrazione feature dalle frasi del treebank
+        for sentence, dep_tree in TreebankParser(training_set):
+            transitions, actions = Parser.get_transitions(sentence, dep_tree)
+            examples.extend([self.encoder.encode(t) for t in transitions])
+            labels.extend([label.value - 1 for label in actions]) #enum magic
+
+        examples = self.encoder.oneHotEncoding(examples)
+        print("Training model with {} examples".format(len(labels)))
+        self.__model.fit(examples, labels)
+
+        return self
+
+
+
+    def predict(self, configuration):
+        return self.__model.predict(configuration.toarray())
+#        fv = self.__encoder.encodeFeature(configuration)
+#        return self.__model.predict(fv.toarray())
+
+
+
+    def load_model(self, model_file):
+        self.__model = joblib.loads(model_file)
 
 
 
