@@ -13,7 +13,6 @@ from sklearn.svm import SVC
 from sklearn.externals import joblib
 
 from timeit import default_timer as timer
-#from oracle import Oracle
 
 
 
@@ -29,13 +28,11 @@ if __name__ == "__main__":
     for index, (sentence, dep_tree) in enumerate(tb):
         print("{}. {}".format(index, sentence))
 
-#        t = tree.tree(sentence)
         transitions, _labels = Parser.get_transitions(sentence, dep_tree)
         print("{} actions: {}".format(len(transitions), [label.value for label in _labels]))
 
         examples.extend([enc.encode(t) for t in transitions])
-        labels.extend([enc.encodeLabel(l) for l in _labels])
-#        examples.append(enc.encode())
+        labels.extend([l.value for l in _labels])
 
         if index == 3:
             break
@@ -49,6 +46,41 @@ if __name__ == "__main__":
     print("Test Parser.fit_oracle")
     parser = Parser()
     parser.fit_oracle(sys.argv[1])
+
+    print("Test Oracle.predict")
+
+    tb = TreebankParser(sys.argv[2])
+    correct, total = 0, 0
+
+    for index, (sentence, dep_tree) in enumerate(tb):
+        transitions, labels = Parser.get_transitions(sentence, dep_tree)
+
+        print("Parsing frase #{}...".format(index), end="")
+        actions = parser.parse(sentence)
+
+        num_err = [bool(predicted is actual) for predicted, actual in zip(actions, labels)].count(False)
+        print("{}/{} errors --> {}".format(num_err, len(actions), num_err/len(actions)))
+        #per ogni storia in transitions: fai predict e confronta col corrispettivo in labels
+
+#         pcorrect, ptotal = 0, 0
+#         for t, l in zip(transitions, labels):
+# #            fv = parser.oracle.encoder.encodeFeature(t)
+# #            print(fv, type(fv))
+# #            predicted = parser.oracle.predict(fv)
+#             predicted = parser.oracle.predict(t)
+#
+# #            print(predicted, l.value)
+#
+#             if predicted is l:
+#                 correct += 1
+#                 pcorrect += 1
+#             total += 1
+#             ptotal += 1
+#         print("Per sentence accuracy: {}".format(pcorrect/ptotal))
+# #            print("{} --> {}".format(parser.oracle.predict(fv), l.value))
+#     print("Total accuracy: {}".format(correct/total))
+
+    print("\n\n")
 
 
     # print("Addestro oracolo", flush=True)

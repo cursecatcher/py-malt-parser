@@ -50,30 +50,30 @@ class TreebankParser(object):
 #         print(" completed in {}".format(format_time(timer()-start)))
 
 
-    def parse(self, filename):
-        examples = list()
-        labels = list()
-
-        print("Extracting features...", flush=True, end="")
-        start = timer()
-
-        for sentence in self.__get_sentence(filename):
-            dependency_tree = tree.tree(sentence).sort()
-            transitions = Parser.get_transitions(sentence, dependency_tree)
-
-#            transitions = SentenceTransitions(sentence, dependency_tree)
-
-            for t, label in transitions:
-                examples.append(t)
-                labels.append(label)
-        #
-        #     for t, label in transitions.states:
-        #         examples.append(self.__encoder.encode(t))
-        #         labels.append(self.__encoder.encodeLabel(label))
-        #
-        # X = self.__encoder.oneHotEncoding(examples)
-        print(" completed in {}".format(format_time(timer()-start)))
-        return examples, labels
+#     def parse(self, filename):
+#         examples = list()
+#         labels = list()
+#
+#         print("Extracting features...", flush=True, end="")
+#         start = timer()
+#
+#         for sentence in self.__get_sentence(filename):
+#             dependency_tree = tree.tree(sentence).sort()
+#             transitions = Parser.get_transitions(sentence, dependency_tree)
+#
+# #            transitions = SentenceTransitions(sentence, dependency_tree)
+#
+#             for t, label in transitions:
+#                 examples.append(t)
+#                 labels.append(label)
+#         #
+#         #     for t, label in transitions.states:
+#         #         examples.append(self.__encoder.encode(t))
+#         #         labels.append(self.__encoder.encodeLabel(label))
+#         #
+#         # X = self.__encoder.oneHotEncoding(examples)
+#         print(" completed in {}".format(format_time(timer()-start)))
+#         return examples, labels
 
         # return X, labels
 

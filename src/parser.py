@@ -57,22 +57,19 @@ class Parser(object):
         self.init(sentence)
 
         while not self.is_final_state():
-            configuration = ParserState(self)
-#            feature_vector = self.oracle.predict(configuration)
-        #    feature_vector = self.oracle.encoder.encodeFeature(configuration)
-            action = self.oracle.predict(configuration)
-        #    action = self.oracle.predict(feature_vector)
             avail_actions = self.__get_avail_actions()
 
             if len(avail_actions) == 0:
-                raise Exception("Houston, we have a problem")
+                raise Exception("Unable to parse the sentence")
+
+            configuration = ParserState(self)
+            action = self.oracle.predict(configuration)
 
             if action in avail_actions:
                 #ci fidiamo dell'oracolo
                 self.__exec(action)
             else:
                 #azione random fattibile --> shift
-                print("asd")
                 self.shift()
 
         return self.history()
@@ -215,7 +212,7 @@ class Parser(object):
 
 class Oracle(object):
     def __init__(self):
-        self.__model = LogisticRegression(multi_class="ovr", solver="newton-cg")
+        self.__model = LogisticRegression(multi_class="multinomial", solver="newton-cg")
         self.__encoder = FeatureEncoder()
 
     @property
