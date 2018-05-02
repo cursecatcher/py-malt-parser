@@ -38,7 +38,7 @@ class FeatureEncoder(object):
         self.__lemmas = dict()
         self.__deps = dict()
 
-        self.__labels = dict()
+#        self.__labels = dict()
         self.__ohe = preprocessing.OneHotEncoder(handle_unknown="ignore")
 
     def encodeFeature(self, configuration):
@@ -66,10 +66,10 @@ class FeatureEncoder(object):
 
         return feature_vector
 
-    def encodeLabel(self, label):
-        if label not in self.__labels:
-            self.__labels[label] = len(self.__labels)
-        return self.__labels[label]
+    # def encodeLabel(self, label):
+    #     if label not in self.__labels:
+    #         self.__labels[label] = len(self.__labels)
+    #     return self.__labels[label]
 
     def oneHotEncoding(self, X):
         self.__ohe.fit(X)

@@ -53,6 +53,67 @@ class Parser(object):
         self.__history = list()
         return self
 
+    def parse(self, sentence):
+        self.init(sentence)
+
+        while not self.is_final_state():
+            configuration = ParserState(self)
+#            feature_vector = self.oracle.predict(configuration)
+        #    feature_vector = self.oracle.encoder.encodeFeature(configuration)
+            action = self.oracle.predict(configuration)
+        #    action = self.oracle.predict(feature_vector)
+            avail_actions = self.__get_avail_actions()
+
+            if len(avail_actions) == 0:
+                raise Exception("Houston, we have a problem")
+
+            if action in avail_actions:
+                #ci fidiamo dell'oracolo
+                self.__exec(action)
+            else:
+                #azione random fattibile --> shift
+                print("asd")
+                self.shift()
+
+        return self.history()
+
+    def __exec(self, action):
+        if action is ParserAction.SHIFT:
+            self.shift()
+        elif action is ParserAction.LEFT:
+            self.left(RelationType.NONAME)
+        elif action is ParserAction.LEFT_DOBJ:
+            self.left(RelationType.DOBJ)
+        elif action is ParserAction.LEFT_NSUBJ:
+            self.left(RelationType.NSUBJ)
+        elif action is ParserAction.RIGHT:
+            self.right(RelationType.NONAME)
+        elif action is ParserAction.RIGHT_DOBJ:
+            self.right(RelationType.DOBJ)
+        elif action is ParserAction.RIGHT_NSUBJ:
+            self.right(RelationType.NSUBJ)
+
+
+
+
+    def __get_avail_actions(self):
+        """Restituisce l'insieme delle azioni fattibili in base allo stato del parser"""
+        moves = set()
+
+        if self.queue_size() > 0:
+            moves.add(ParserAction.SHIFT)
+            if self.stack_size() > 0:
+                moves.update({action for action in ParserAction})
+
+        return moves
+
+    @property
+    def oracle(self):
+        return self.__oracle
+
+    def history(self):
+        return self.__history
+
     def fit_oracle(self, training_set):
         self.__oracle.fit(training_set)
 
@@ -72,6 +133,7 @@ class Parser(object):
 
     def shift(self):
         """ Estrae prossima parola dalla lista e la pusha sullo stack """
+
         self.__stack.append(self.__queue[0])
         self.__queue = self.__queue[1:]
         self.__history.append(ParserAction.SHIFT)
@@ -79,6 +141,7 @@ class Parser(object):
     def left(self, opt):
         """ Crea dipendenza tra la prossima parola nella lista e quella
         in cima allo stack, rimuovendola dalla pila."""
+
         dependent = self.__stack.pop()
         head = self.__queue[0]
         self.__tree.add_dependency(head.tid, dependent.tid, opt) #uso gli id
@@ -89,6 +152,7 @@ class Parser(object):
         """ Crea dipendenza tra la parola in cima allo stack e la prossima nella lista.
         Rimuove la parola dalla lista, poppa lo stack e inserisce tale parola nella lista,
         in prima posizione """
+
         dependent, self.__queue = self.__queue[0], self.__queue[1:]
         head = self.__stack.pop()
         self.__queue.insert(0, head)
@@ -112,8 +176,7 @@ class Parser(object):
         return len(self.__queue)
     #</partially_useless_methods>
 
-    def history(self):
-        return self.__history
+
 
 
     def is_final_state(self):
@@ -179,7 +242,11 @@ class Oracle(object):
 
 
     def predict(self, configuration):
-        return self.__model.predict(configuration.toarray())
+        """Data una configurazione del parser, predice l'azione da eseguire"""
+#        print(type(configuration))
+        feature_vector = self.encoder.encodeFeature(configuration)
+        action = self.__model.predict(feature_vector.toarray())
+        return ParserAction(action[0]+1)
 #        fv = self.__encoder.encodeFeature(configuration)
 #        return self.__model.predict(fv.toarray())
 
