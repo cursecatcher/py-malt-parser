@@ -80,8 +80,9 @@ class tree(object):
     def __map_relation(self, relation):
         return relation if relation in ("nsubj", "dobj", "root") else "noname"
 
-    def __str__(self):
-        return " ".join([str(node) for node in self.nodes])
+
+    # def __str__(self):
+    #     return " ".join([str(node) for node in self.nodes])
 
     def __getitem__(self, key):
         """ Accede al key-esimo nodo. """

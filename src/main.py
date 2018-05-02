@@ -7,6 +7,7 @@ import tree
 from parser import Parser, Oracle
 from treebank import TreebankParser, format_time
 from features import FeatureEncoder
+from evaluation import Evaluation
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
@@ -47,19 +48,49 @@ if __name__ == "__main__":
     parser = Parser()
     parser.fit_oracle(sys.argv[1])
 
-    print("Test Oracle.predict")
+    print("Test Oracle.predict", flush=True)
 
     tb = TreebankParser(sys.argv[2])
+    evaluation = Evaluation(num_classes=7)
     correct, total = 0, 0
 
-    for index, (sentence, dep_tree) in enumerate(tb):
-        transitions, labels = Parser.get_transitions(sentence, dep_tree)
+    for index, (sentence, gold_tree) in enumerate(tb):
+#        transitions, labels = Parser.get_transitions(sentence, gold_tree)
 
-        print("Parsing frase #{}...".format(index), end="")
-        actions = parser.parse(sentence)
+#        print("Parsing frase #{}...\n".format(index), end="", flush=True)
+        predicted_tree = parser.parse(sentence)
 
-        num_err = [bool(predicted is actual) for predicted, actual in zip(actions, labels)].count(False)
-        print("{}/{} errors --> {}".format(num_err, len(actions), num_err/len(actions)))
+        evaluation.update(gold_tree, predicted_tree)
+        #
+        # all_dependencies = set(gold_tree.dependencies).union(set(predicted_tree.dependencies))
+        # corrette, solo_gold, solo_pred, tot = 0,0,0,0
+        #
+        # for dep in all_dependencies:
+        #     tot += 1
+        #     if dep in gold_tree.dependencies and dep in predicted_tree.dependencies:
+        #         corrette += 1
+        #     elif dep in gold_tree.dependencies:
+        #         solo_gold += 1
+        #     elif dep in predicted_tree.dependencies:
+        #         solo_pred += 1
+
+#        print("tot: {}, tp: {}, fp: {}, fn: {}".format(tot, corrette, solo_pred, solo_gold))
+
+#        print(predicted_tree.dependencies)
+
+    #    evaluation.update(labels, actions)
+
+    print("Unlabelled attachment score: {}".format(evaluation.unlabelled_attachment_score))
+    print("Labelled attachment score: {}".format(evaluation.labelled_attachment_score))
+
+#    print("accuracy: {}".format(correct/tot))
+
+#    print("accuracy: {}".format(evaluation.get_accuracy()))
+#    print("precisions: {}".format(evaluation.get_precision()))
+#    print("recall: {}".format(evaluation.get_recall()))
+
+#        num_err = [bool(predicted is actual) for predicted, actual in zip(actions, labels)].count(False)
+#        print("{}/{} errors --> {}".format(num_err, len(actions), num_err/len(actions)))
         #per ogni storia in transitions: fai predict e confronta col corrispettivo in labels
 
 #         pcorrect, ptotal = 0, 0

@@ -13,6 +13,7 @@ from sklearn.linear_model import LogisticRegression
 
 import enum
 
+
 class ParserAction(enum.Enum):
     SHIFT = 1
     LEFT = 2
@@ -41,9 +42,9 @@ class ParserAction(enum.Enum):
 class Parser(object):
     def __init__(self):
         self.__oracle = Oracle()
-        self.__stack = list()#[Token(0)] #root
-        self.__queue = list()#[token for token in sentence]
-        self.__tree = list()#tree.tree(sentence, False) #numero di nodi pari al numero di parole
+        self.__stack = list()
+        self.__queue = list()
+        self.__tree = None
         self.__history = list()
 
     def init(self, sentence):
@@ -72,7 +73,7 @@ class Parser(object):
                 #azione random fattibile --> shift
                 self.shift()
 
-        return self.history()
+        return self.__tree
 
     def __exec(self, action):
         if action is ParserAction.SHIFT:
