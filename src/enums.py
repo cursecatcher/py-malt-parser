@@ -4,18 +4,18 @@
 import enum
 
 class FeatureType(enum.Enum):
-    POS = 1
-    LEMMA = 2
-    DEPENDENCY = 3
+    POS = 0
+    LEMMA = 1
+    DEPENDENCY = 2
 
 class ParserAction(enum.Enum):
-    SHIFT = 1
-    LEFT = 2
-    RIGHT = 3
-    LEFT_NSUBJ = 4
-    RIGHT_NSUBJ = 5
-    LEFT_DOBJ = 6
-    RIGHT_DOBJ = 7
+    SHIFT = 0
+    LEFT = 1
+    RIGHT = 2
+    LEFT_NSUBJ = 3
+    RIGHT_NSUBJ = 4
+    LEFT_DOBJ = 5
+    RIGHT_DOBJ = 6
 
     @classmethod
     def get_parser_action(cls, action, relation):

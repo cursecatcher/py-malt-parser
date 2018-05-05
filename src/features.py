@@ -22,6 +22,9 @@ class feature(object):
     def value(self):
         return self.__value
 
+    def __str__(self):
+        return "({}: {})".format(self.__type, self.__value)
+
 
 class FeatureEncoder(object):
     """Le feature raw sono stringhe. Per utilizzare i classificatori è
@@ -29,7 +32,7 @@ class FeatureEncoder(object):
 
     def __init__(self):
         #mapping da feature categoriali (?) a interi
-        self.__pos = {None: 0} #init smart, forse 
+        self.__pos = {None: 0} #init smart, forse
         self.__lemmas = {None: 0}
         self.__deps = {None: 0}
 
@@ -57,11 +60,14 @@ class FeatureEncoder(object):
                 curr_dict[f.value] = len(curr_dict)
 
             feature_vector[index] = curr_dict[f.value]
-
+            
         return feature_vector
 
 
     def oneHotEncoding(self, X):
+        print("pos: {}".format(len(self.__pos)))
+        print("lem: {}".format(len(self.__lemmas)))
+        print("dep: {}".format(len(self.__deps)))
         self.__ohe.fit(X)
         return self.__ohe.transform(X)
 
@@ -77,7 +83,7 @@ class Features(object):
         self.pos_q2 = feature(FeatureType.POS, state.q2.pos if state.q2 else None)
         self.pos_q3 = feature(FeatureType.POS, state.q3.pos if state.q3 else None)
 
-        self.wf_s0h = feature(FeatureType.LEMMA, state.s0h.lemma if state.s0h else None)
+#        self.wf_s0h = feature(FeatureType.LEMMA, state.s0h.lemma if state.s0h else None)
         self.wf_s0 = feature(FeatureType.LEMMA, state.s0.lemma if state.s0 else None)
         self.wf_q0 = feature(FeatureType.LEMMA, state.q0.lemma if state.q0 else None)
         self.wf_q1 = feature(FeatureType.LEMMA, state.q1.lemma if state.q1 else None)
@@ -91,5 +97,6 @@ class Features(object):
     def feature_vector(self):
         """Restituisce una lista di feature"""
         return [self.pos_s0, self.pos_s1, self.pos_q0, self.pos_q1, self.pos_q2, self.pos_q3,
-                self.wf_s0h, self.wf_s0, self.wf_q0, self.wf_q1,
+                #self.wf_s0h,
+                self.wf_s0, self.wf_q0, self.wf_q1,
                 self.dep_s0l, self.dep_s0, self.dep_s0r, self.dep_q0l]

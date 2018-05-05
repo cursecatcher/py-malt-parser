@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from enums import RelationType
 
 #https://linguistics.stackexchange.com/questions/6863/how-is-the-f1-score-computed-when-assessing-dependency-parsing
 #1. exact match: percentuale di frasi correttamente parsate
@@ -17,8 +18,8 @@ class Evaluation(object):
     def __init__(self, num_classes):
         #aggiungo una riga e una colonna alla confusion matrix per indicare
         #la possibilità che la dipendenza non sia stata predetta o non esista
-        self.__num_classes = num_classes
         self.__cm = np.zeros(shape=(num_classes+1, num_classes+1))
+        self.__num_classes = num_classes
 
         self.__uas = [0, 0]
         self.__las = [0, 0]
@@ -64,15 +65,16 @@ class Evaluation(object):
                 #false positive
                 self.__cm[self.__num_classes][pred[dep].value] += 1
 
-        return set(gold.keys()), set(pred.keys())
+        return set(gold.keys()), set(pred.keys()) #utilizzati per il calcolo del UAS
 
 
     def update(self, gold_tree, predicted_tree):
-        gold_deps, pred_deps = self.__update_cm(gold_tree, predicted_tree)
-
         # update labelled attachment score
         self.__las[0] += len(gold_tree.dependencies.intersection(predicted_tree.dependencies))
         self.__las[1] += len(gold_tree.dependencies)
+
+        #update confusion matrix
+        gold_deps, pred_deps = self.__update_cm(gold_tree, predicted_tree)
 
         #update unlabelled attachment score
         self.__uas[0] += len(gold_deps.intersection(pred_deps))
@@ -84,10 +86,12 @@ class Evaluation(object):
             self.__exact[0] += 1
 
     def get_precision(self):
-        return  self.__cm.diagonal() / self.__cm.sum(axis=0)
+        vec = self.__cm.diagonal() / self.__cm.sum(axis=0)
+        return {relation.name: vec[relation.value] for relation in RelationType}
 
     def get_recall(self):
-        return self.__cm.diagonal() / self.__cm.sum(axis=1)
+        vec = self.__cm.diagonal() / self.__cm.sum(axis=1)
+        return {relation.name: vec[relation.value] for relation in RelationType}
 
     def get_accuracy(self):
         return self.__cm.diagonal().sum() / self.__cm.sum()

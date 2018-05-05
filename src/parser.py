@@ -206,7 +206,7 @@ class Oracle(object):
         for sentence, dep_tree in TreebankParser(training_set):
             transitions, actions = Parser.get_transitions(sentence, dep_tree)
             examples.extend([self.encoder.encode(t) for t in transitions])
-            labels.extend([label.value - 1 for label in actions]) #enum magic
+            labels.extend([label.value for label in actions]) #enum magic
 
         examples = self.encoder.oneHotEncoding(examples)
         print("Training model with {} examples".format(len(labels)))
@@ -220,10 +220,9 @@ class Oracle(object):
         """Data una configurazione del parser, predice l'azione da eseguire"""
 #        print(type(configuration))
         feature_vector = self.encoder.encodeFeature(configuration)
+#        print(len(feature_vector.toarray()[0]))
         action = self.__model.predict(feature_vector.toarray())
-        return ParserAction(action[0]+1)
-#        fv = self.__encoder.encodeFeature(configuration)
-#        return self.__model.predict(fv.toarray())
+        return ParserAction(action[0])
 
 
 
