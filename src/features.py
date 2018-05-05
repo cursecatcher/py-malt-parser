@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from enum import Enum
 
 from sklearn import preprocessing
+from enums import FeatureType
 
-
-class FeatureType(Enum):
-    POS = 1
-    LEMMA = 2
-    DEPENDENCY = 3
 
 class feature(object):
-    """Descrive una singola feature: è descritta dal tipo di feature e dal valore associato"""
+    """Descrive una singola feature: tipo di feature e valore associato"""
 
     def __init__(self, feature_type, value):
         """Inizializza una feature"""
@@ -34,11 +29,10 @@ class FeatureEncoder(object):
 
     def __init__(self):
         #mapping da feature categoriali (?) a interi
-        self.__pos = dict()
-        self.__lemmas = dict()
-        self.__deps = dict()
+        self.__pos = {None: 0} #init smart, forse 
+        self.__lemmas = {None: 0}
+        self.__deps = {None: 0}
 
-#        self.__labels = dict()
         self.__ohe = preprocessing.OneHotEncoder(handle_unknown="ignore")
 
     def encodeFeature(self, configuration):
@@ -66,18 +60,10 @@ class FeatureEncoder(object):
 
         return feature_vector
 
-    # def encodeLabel(self, label):
-    #     if label not in self.__labels:
-    #         self.__labels[label] = len(self.__labels)
-    #     return self.__labels[label]
 
     def oneHotEncoding(self, X):
         self.__ohe.fit(X)
         return self.__ohe.transform(X)
-    #    return preprocessing.OneHotEncoder().fit_transform(X)
-
-
-
 
 
 class Features(object):

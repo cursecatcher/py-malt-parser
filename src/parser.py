@@ -1,42 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import tree
+#import tree
 from sentence import *
 from features import Features
+from enums import ParserAction, RelationType
 
 #oracle
-from treebank import TreebankParser
+from treebank import TreebankParser, tree
 from features import FeatureEncoder
 from sklearn.externals import joblib
 from sklearn.linear_model import LogisticRegression
 
-import enum
-
-
-class ParserAction(enum.Enum):
-    SHIFT = 1
-    LEFT = 2
-    RIGHT = 3
-    LEFT_NSUBJ = 4
-    RIGHT_NSUBJ = 5
-    LEFT_DOBJ = 6
-    RIGHT_DOBJ = 7
-
-    @classmethod
-    def get_parser_action(cls, action, relation):
-        if action == "left":
-            if relation is RelationType.NSUBJ:
-                return ParserAction.LEFT_NSUBJ
-            else:
-                return ParserAction.LEFT_DOBJ if relation is RelationType.DOBJ else ParserAction.LEFT
-        elif action == "right":
-            if relation is RelationType.NSUBJ:
-                return ParserAction.RIGHT_NSUBJ
-            else:
-                return ParserAction.RIGHT_DOBJ if relation is RelationType.DOBJ else ParserAction.RIGHT
-
-        return ParserAction.SHIFT
 
 
 class Parser(object):
@@ -50,8 +25,12 @@ class Parser(object):
     def init(self, sentence):
         self.__stack = [Token(0)] #root
         self.__queue = [token for token in sentence]
-        self.__tree = tree.tree(sentence, False) #numero di nodi pari al numero di parole
+        self.__tree = tree(sentence, False) #numero di nodi pari al numero di parole
         self.__history = list()
+        return self
+
+    def fit_oracle(self, training_set):
+        self.__oracle.fit(training_set)
         return self
 
     def parse(self, sentence):
@@ -111,9 +90,6 @@ class Parser(object):
 
     def history(self):
         return self.__history
-
-    def fit_oracle(self, training_set):
-        self.__oracle.fit(training_set)
 
     def __str__(self):
         return "-> stack: {}\nqueue: {}".format(
@@ -213,6 +189,7 @@ class Parser(object):
 
 class Oracle(object):
     def __init__(self):
+        #no svm perchè "hard to scale to dataset with more than a couple of 10000 samples" [cit. documentazione]
         self.__model = LogisticRegression(multi_class="multinomial", solver="newton-cg")
         self.__encoder = FeatureEncoder()
 
@@ -273,9 +250,6 @@ class ParserState(object):
         self.s0r = tree.get_rightmost_child(self.s0.tid) if self.s0 else None
         self.q0l = tree.get_leftmost_child(self.q0.tid) if self.q0 else None
 
-
-
-#        print(Token(None))
 
     def __str__(self):
         return "s0: {}\ns1: {}\nq0: {}\nq1: {}\nq2: {}\nq3: {}\ns0h: {}\ns0l: {}\ns0r: {}\nq0l: {}".format(self.s0, self.s1, self.q0, self.q1, self.q2, self.q3, self.s0h, self.s0l, self.s0r, self.q0l)

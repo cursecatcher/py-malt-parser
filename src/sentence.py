@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import enum
-
-class RelationType(enum.Enum):
-    NONAME = 1
-    NSUBJ = 2
-    DOBJ = 3
-
+from enums import RelationType
 
 class Sentence(object): #e se ereditasse da list???
     def __init__(self):
@@ -35,6 +29,13 @@ class Sentence(object): #e se ereditasse da list???
 class Token(object):
     def __init__(self, id, wordform=None, lemma=None, pos=None, head=None, dep=None):
         self.__token = {"id": int(id) if id is not None else None}
+        self.wordform = wordform
+        self.lemma = lemma
+        self.pos = pos
+        self.head = head
+        self.dtype = dep
+
+    def init(self, wordform=None, lemma=None, pos=None, head=None, dep=None):
         self.wordform = wordform
         self.lemma = lemma
         self.pos = pos
@@ -83,14 +84,7 @@ class Token(object):
 
     @dtype.setter
     def dtype(self, dtype):
-        if dtype == "nsubj":
-            dtype = RelationType.NSUBJ
-        elif dtype == "dobj":
-            dtype = RelationType.DOBJ
-        else:
-            dtype = RelationType.NONAME
-        self.__token["dtype"] = dtype
-    #    self.__token["dtype"] = dtype if dtype in ("nsubj", "dobj", "root", None) else "noname"
+        self.__token["dtype"] = RelationType.get_relation_type(dtype)
 
     def __str__(self):
         return str(self.__token)
