@@ -3,12 +3,13 @@
 
 #import tree
 from sentence import *
-from features import Features
+from features import Features, FeatureEncoder
 from enums import ParserAction, RelationType
+
+import features2 as f2
 
 #oracle
 from treebank import TreebankParser, tree
-from features import FeatureEncoder
 from sklearn.externals import joblib
 from sklearn.linear_model import LogisticRegression
 
@@ -191,14 +192,15 @@ class Oracle(object):
     def __init__(self):
         #no svm perchè "hard to scale to dataset with more than a couple of 10000 samples" [cit. documentazione]
         self.__model = LogisticRegression(multi_class="multinomial", solver="newton-cg")
-        self.__encoder = FeatureEncoder()
+        self.__encoder = f2.FeatureEncoder()
+    #    self.__encoder = FeatureEncoder()
 
     @property
     def encoder(self):
         return self.__encoder
 
 
-    def fit(self, training_set):
+    def __fit(self, training_set):
         """Addestra l'oracolo con le frasi di un treebank"""
 
         examples, labels = list(), list()
@@ -214,9 +216,32 @@ class Oracle(object):
 
         return self
 
+    def fit(self, training_set):
+        examples, labels = list(), list()
 
+        for sentence, dep_tree in TreebankParser(training_set):
+            transitions, actions = Parser.get_transitions(sentence, dep_tree)
+
+            examples.extend([self.encoder.encodeFeatures(c) for c in transitions])
+            labels.extend([label.value for label in actions])
+
+        examples = self.encoder.fit_oneHotEncoding(examples)
+        print("Training model with {} examples".format(len(labels)))
+        self.__model.fit(examples, labels)
+        return self
 
     def predict(self, configuration):
+        """ """
+
+        feature_vectors = self.encoder.encodeFeatures(configuration)
+        feature_vectors = self.encoder.oneHotEncoding(feature_vectors).toarray()
+        action = self.__model.predict(feature_vectors)
+
+        return ParserAction(action[0])
+
+
+
+    def __predict(self, configuration):
         """Data una configurazione del parser, predice l'azione da eseguire"""
 #        print(type(configuration))
         feature_vector = self.encoder.encodeFeature(configuration)

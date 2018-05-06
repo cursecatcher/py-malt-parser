@@ -16,6 +16,8 @@ from sklearn.externals import joblib
 
 from timeit import default_timer as timer
 
+import features2 as f2
+
 
 def format_time(time):
     strtime = "{:03.5f} m".format(time/60) if time >= 60 else "{:03.5f} s".format(time)
@@ -24,7 +26,20 @@ def format_time(time):
 
 
 if __name__ == "__main__":
-    if True:
+    if False:
+        print("Test features2")
+
+        tb = TreebankParser(sys.argv[1])
+        enc = f2.FeatureEncoder()
+        oracle = Oracle().fit2(sys.argv[1])
+
+        # for index, (sentence, dep_tree) in enumerate(tb):
+        #     transitions, labels = Parser.get_transitions(sentence, dep_tree)
+        #     encoded = [enc.encodeFeatures(t) for t in transitions]
+        #    print(encoded)
+
+
+    if False:
         tb = TreebankParser(sys.argv[1])
         enc = FeatureEncoder()
 

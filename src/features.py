@@ -60,7 +60,7 @@ class FeatureEncoder(object):
                 curr_dict[f.value] = len(curr_dict)
 
             feature_vector[index] = curr_dict[f.value]
-            
+
         return feature_vector
 
 
