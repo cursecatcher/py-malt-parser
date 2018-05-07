@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-#import tree
+import enums
+
 from sentence import *
 from features import Features, FeatureEncoder
 from enums import ParserAction, RelationType
@@ -12,6 +13,7 @@ import features2 as f2
 from treebank import TreebankParser, tree
 from sklearn.externals import joblib
 from sklearn.linear_model import LogisticRegression
+import collections #for Counter
 
 
 
@@ -222,8 +224,17 @@ class Oracle(object):
         for sentence, dep_tree in TreebankParser(training_set):
             transitions, actions = Parser.get_transitions(sentence, dep_tree)
 
-            examples.extend([self.encoder.encodeFeatures(c) for c in transitions])
-            labels.extend([label.value for label in actions])
+            for t, a in zip(transitions, actions):
+                features = self.encoder.encodeFeatures(t)
+                examples.extend(features)
+                # print(examples)
+                # print(features)
+                #print(features)
+#                examples.extend(features)
+                labels.extend([a.value] * len(features))
+
+#            examples.extend([self.encoder.encodeFeatures(c) for c in transitions])
+#            labels.extend([label.value for label in actions])
 
         examples = self.encoder.fit_oneHotEncoding(examples)
         print("Training model with {} examples".format(len(labels)))
@@ -233,11 +244,19 @@ class Oracle(object):
     def predict(self, configuration):
         """ """
 
+        predictions = collections.Counter()
         feature_vectors = self.encoder.encodeFeatures(configuration)
-        feature_vectors = self.encoder.oneHotEncoding(feature_vectors).toarray()
-        action = self.__model.predict(feature_vectors)
 
-        return ParserAction(action[0])
+        for fv in feature_vectors:
+           encoded = self.encoder.oneHotEncoding(fv)
+           predictions[self.__model.predict(encoded)[0]] += 1
+
+        return ParserAction(predictions.most_common(1)[0][0])
+        # print(feature_vectors, flush=True)
+        # feature_vectors = self.encoder.oneHotEncoding(feature_vectors)#.toarray()
+        # action = self.__model.predict(feature_vectors)
+
+#        return ParserAction(action[0])
 
 
 
@@ -273,6 +292,39 @@ class ParserState(object):
         self.s0l = tree.get_leftmost_child(self.s0.tid) if self.s0 else None
         self.s0r = tree.get_rightmost_child(self.s0.tid) if self.s0 else None
         self.q0l = tree.get_leftmost_child(self.q0.tid) if self.q0 else None
+
+    def __getitem__(self, key): #key: enums.FeatureTemplateName
+        try:
+            if key is enums.FeatureTemplateName.POS_S0:
+                return self.s0.pos
+            if key is enums.FeatureTemplateName.POS_S1:
+                return self.s1.pos
+            if key is enums.FeatureTemplateName.POS_Q0:
+                return self.q0.pos
+            if key is enums.FeatureTemplateName.POS_Q1:
+                return self.q1.pos
+            if key is enums.FeatureTemplateName.POS_Q2:
+                return self.q2.pos
+            if key is enums.FeatureTemplateName.POS_Q3:
+                return self.q3.pos
+
+            if key is enums.FeatureTemplateName.WF_S0:
+                return self.s0.lemma
+            if key is enums.FeatureTemplateName.WF_Q0:
+                return self.q0.lemma
+            if key is enums.FeatureTemplateName.WF_Q1:
+                return self.q1.lemma
+
+            if key is enums.FeatureTemplateName.DEP_S0L:
+                return self.s0l[1]
+            if key is enums.FeatureTemplateName.DEP_S0:
+                return self.s0.dtype
+            if key is enums.FeatureTemplateName.DEP_S0R:
+                return self.s0r[1]
+            if key is enums.FeatureTemplateName.DEP_Q0L:
+                return self.q0l[1]
+        except (TypeError, AttributeError):
+            return None
 
 
     def __str__(self):

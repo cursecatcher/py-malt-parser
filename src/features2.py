@@ -19,24 +19,46 @@ class FeatureEncoder(object):
         """ Prende configurazione c del parser e costruisce i relativi feature vector
         a numeri interi """
 
-        vector = FeatureTemplate(
-            Feature(enums.FeatureTemplateName.POS_S0, c.s0.pos if c.s0 else None, enums.FeatureType.POS),
-            Feature(enums.FeatureTemplateName.POS_S1, c.s1.pos if c.s1 else None, enums.FeatureType.POS),
-            Feature(enums.FeatureTemplateName.POS_Q0, c.q0.pos if c.q0 else None, enums.FeatureType.POS),
-            Feature(enums.FeatureTemplateName.POS_Q1, c.q1.pos if c.q1 else None, enums.FeatureType.POS),
-            Feature(enums.FeatureTemplateName.POS_Q2, c.q2.pos if c.q2 else None, enums.FeatureType.POS),
-            Feature(enums.FeatureTemplateName.POS_Q3, c.q3.pos if c.q3 else None, enums.FeatureType.POS),
+        features = list()
 
-            Feature(enums.FeatureTemplateName.WF_S0, c.s0.lemma if c.s0 else None, enums.FeatureType.LEMMA),
-            Feature(enums.FeatureTemplateName.WF_Q0, c.q0.lemma if c.q0 else None, enums.FeatureType.LEMMA),
-            Feature(enums.FeatureTemplateName.WF_Q1, c.q1.lemma if c.q1 else None, enums.FeatureType.LEMMA),
-            Feature(enums.FeatureTemplateName.DEP_S0L, c.s0l[1] if c.s0l else None, enums.FeatureType.DEPENDENCY),
+        for template in enums.FeatureModel:
+            current = [ Feature(f, c[f], enums.FeatureType.get_feature_type(f)) for f in template.value ]
+            features.append( FeatureTemplate(*current) )
+            #
+            # current = list()
+            #
+            # for feature in template.value: #scorro le singole feature del template (??) --
+            #     current.append(Feature(feature, c[feature], enums.FeatureType.get_feature_type(feature)))
 
-            Feature(enums.FeatureTemplateName.DEP_S0, c.s0.dtype if c.s0 else None, enums.FeatureType.DEPENDENCY),
-            Feature(enums.FeatureTemplateName.DEP_S0R, c.s0r[1] if c.s0r else None, enums.FeatureType.DEPENDENCY),
-            Feature(enums.FeatureTemplateName.DEP_Q0L, c.q0l[1] if c.q0l else None, enums.FeatureType.DEPENDENCY)
-        )
-        return self.encodeTemplate(vector)#, add_unknown=False)
+        #restituisce lista di feature codificate
+        return [self.encodeTemplate(feature) for feature in features]
+####################        return self.encodeTemplate(features[0])
+
+        # print([str(x) for x in features[0].feature_vector()])
+        # print([str(x) for x in features[1].feature_vector()])
+        # print(features)
+
+        # raise Exception("dio cane")
+#        print(features[0])
+
+        # vector = FeatureTemplate(
+        #     Feature(enums.FeatureTemplateName.POS_S0, c.s0.pos if c.s0 else None, enums.FeatureType.POS),
+        #     Feature(enums.FeatureTemplateName.POS_S1, c.s1.pos if c.s1 else None, enums.FeatureType.POS),
+        #     Feature(enums.FeatureTemplateName.POS_Q0, c.q0.pos if c.q0 else None, enums.FeatureType.POS),
+        #     Feature(enums.FeatureTemplateName.POS_Q1, c.q1.pos if c.q1 else None, enums.FeatureType.POS),
+        #     Feature(enums.FeatureTemplateName.POS_Q2, c.q2.pos if c.q2 else None, enums.FeatureType.POS),
+        #     Feature(enums.FeatureTemplateName.POS_Q3, c.q3.pos if c.q3 else None, enums.FeatureType.POS),
+        #
+        #     Feature(enums.FeatureTemplateName.WF_S0, c.s0.lemma if c.s0 else None, enums.FeatureType.LEMMA),
+        #     Feature(enums.FeatureTemplateName.WF_Q0, c.q0.lemma if c.q0 else None, enums.FeatureType.LEMMA),
+        #     Feature(enums.FeatureTemplateName.WF_Q1, c.q1.lemma if c.q1 else None, enums.FeatureType.LEMMA),
+        #
+        #     Feature(enums.FeatureTemplateName.DEP_S0L, c.s0l[1] if c.s0l else None, enums.FeatureType.DEPENDENCY),
+        #     Feature(enums.FeatureTemplateName.DEP_S0, c.s0.dtype if c.s0 else None, enums.FeatureType.DEPENDENCY),
+        #     Feature(enums.FeatureTemplateName.DEP_S0R, c.s0r[1] if c.s0r else None, enums.FeatureType.DEPENDENCY),
+        #     Feature(enums.FeatureTemplateName.DEP_Q0L, c.q0l[1] if c.q0l else None, enums.FeatureType.DEPENDENCY)
+        # )
+        #, add_unknown=False)
 
         #ma non dovremmo anche associare la label  ???
         # vectors = list()
@@ -67,6 +89,7 @@ class FeatureEncoder(object):
         return self.__ohe.fit_transform(X)
 
     def oneHotEncoding(self, feature_vector):
+    #    print(feature_vector)
         return self.__ohe.transform([feature_vector])
 
 
