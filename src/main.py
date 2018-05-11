@@ -22,7 +22,6 @@ def format_time(time):
     return strtime
 
 
-
 if __name__ == "__main__":
     if len(sys.argv) < 5:
         sys.exit("Usage: ./{} training_set dev_set test_set output_file".format(sys.argv[0]))

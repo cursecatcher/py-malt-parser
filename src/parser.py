@@ -5,7 +5,7 @@ import enums
 
 from sentence import *
 from enums import ParserAction, RelationType
-import features2 as f2
+import features
 
 from treebank import Treebank, tree
 from sklearn.linear_model import LogisticRegression
@@ -202,7 +202,7 @@ class Oracle(object):
     def __init__(self):
         #no svm perchè "hard to scale to dataset with more than a couple of 10000 samples" [cit. documentazione]
         self.__model = LogisticRegression(multi_class="multinomial", solver="newton-cg")
-        self.__encoder = f2.FeatureEncoder()
+        self.__encoder = features.FeatureEncoder()
 
     @property
     def encoder(self):
