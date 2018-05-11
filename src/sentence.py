@@ -4,6 +4,8 @@
 from enums import RelationType
 
 class Sentence(object):
+    """ Rappresenta una frase: è una sequenza ordinata di token """
+
     def __init__(self):
         self.__tokens = list()
 
@@ -25,11 +27,10 @@ class Sentence(object):
 
 
 
-
-
 class Token(object):
+    """ """
     def __init__(self, id, wordform=None, lemma=None, pos=None, xpos=None, feats=None, head=None, dep=None):
-        self.__id = int(id) if id is not None else None
+        self.__id = int(id) if id is not None else None 
         self.__wordform = wordform
         self.__lemma = lemma
         self.__pos = pos

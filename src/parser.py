@@ -12,6 +12,8 @@ from sklearn.linear_model import LogisticRegression
 import collections #for Counter
 
 class ParsingError(Exception):
+    """ Rappresenta quell'eccezione che vorresti non fosse mai lanciata. Temila """
+
     def __init__(self, message, partial_prediction):
         self.message = message
         self.tree = partial_prediction
@@ -28,7 +30,7 @@ class Parser(object):
     def init(self, sentence):
         self.__stack = [Token(0)] #root
         self.__queue = [token for token in sentence]
-        self.__tree = tree(sentence, False) #numero di nodi pari al numero di parole
+        self.__tree = tree(sentence, set_dependencies=False) #numero di nodi pari al numero di parole
         self.__history = list()
 
         return self
@@ -159,22 +161,22 @@ class Parser(object):
 
 
 
-
     def is_final_state(self):
         """Condizione di terminazione del parsing: lo stack contiene solo la
         radice e la coda è vuota, in quanto tutte le parole sono state analizzate"""
+
         return len(self.__queue) == 0 and len(self.__stack) == 1
 
     @staticmethod
     def get_transitions(sentence, tree):
+        """ Costruisce, utilizzando il gold_tree come guida, la sequenza di operazioni
+        necessarie a parsare la frase. Restituisce due liste, contenenti la prima le
+        configurazioni del parser durante il processo, e la seconda le azioni eseguite dal parser """
+
         parser = Parser().init(sentence)
         transitions = list()
-        i = 0
 
         while not parser.is_final_state():
-            i += 1
-            if i == 30:
-                break
             do_shift = True
 
             transitions.append(ParserState(parser))
@@ -209,41 +211,35 @@ class Oracle(object):
         return self.__encoder
 
 
-    def __fit(self, training_set):
-        """Addestra l'oracolo con le frasi di un treebank"""
-
-        examples, labels = list(), list()
-        #estrazione feature dalle frasi del treebank
-        for sentence, dep_tree in TreebankParser(training_set):
-            transitions, actions = Parser.get_transitions(sentence, dep_tree)
-            examples.extend([self.encoder.encode(t) for t in transitions])
-            labels.extend([label.value for label in actions]) #enum magic
-
-        examples = self.encoder.oneHotEncoding(examples)
-        print("Training model with {} examples".format(len(labels)))
-        self.__model.fit(examples, labels)
-
-        return self
-
     def fit(self, training_set):
+        """ Addestra l'oracolo estraendo le features necessarie dagli esempi del training set;
+        le configurazioni del parser durante il parsing corretto della frase sono gli esempi
+        utilizzati nel training, e le azioni compiute dal parser sono le corrispondenti labels. """
+
         examples, labels = list(), list()
 
         for sentence, dep_tree in Treebank().parse(training_set):
+            #ottiene configurazioni del parser e sequenza di operazioni
+            #necessarie a parsare correttamente la frase
             transitions, actions = Parser.get_transitions(sentence, dep_tree)
 
+            #codifica features e costruzione del training set
             for t, a in zip(transitions, actions):
+                #associa le configurazioni del parser alla corrispondente azione eseguita
                 features = self.encoder.encodeFeatures(t)
                 examples.extend(features)
-
                 labels.extend([a.value] * len(features))
 
+        #one hot encoding delle features
         examples = self.encoder.fit_oneHotEncoding(examples)
         print("Training model with {} examples".format(len(labels)))
+        #addestramento del modello
         self.__model.fit(examples, labels)
+
         return self
 
     def predict(self, configuration):
-        """ """
+        """Data una configurazione del parser, predice l'azione da eseguire"""
 
         predictions = collections.Counter()
         feature_vectors = self.encoder.encodeFeatures(configuration)
@@ -255,20 +251,19 @@ class Oracle(object):
         return ParserAction(predictions.most_common(1)[0][0])
 
 
-    def __predict(self, configuration):
-        """Data una configurazione del parser, predice l'azione da eseguire"""
-
-        feature_vector = self.encoder.encodeFeature(configuration)
-        action = self.__model.predict(feature_vector.toarray())
-        return ParserAction(action[0])
-
-
-
 class ParserState(object):
+    """ La classe rappresenta lo stato interno del parser, ossia una sua configurazione.
+    Essa è caratterizzata dai primi due elementi in cima allo stack e dai primi quattro
+    elementi nella coda. Permette l'estrazione delle feature per l'apprendimento.  """
+
     def __init__(self, parser):
+        """Inizializza l'oggetto estraendo gli elementi necessari dalle strutture dati
+        del parser: stack, lista e albero parziale. """
+
         stack, queue = parser.get_stack(), parser.get_queue()
         tree = parser.get_tree()
 
+        #feature statiche
         self.s0 = stack[-1] if len(stack) > 0 else None
         self.s1 = stack[-2] if len(stack) > 1 else None
         self.q0 = queue[0] if len(queue) > 0 else None
@@ -276,6 +271,7 @@ class ParserState(object):
         self.q2 = queue[2] if len(queue) > 2 else None
         self.q3 = queue[3] if len(queue) > 3 else None
 
+        #feature dinamiche
         #head del top dello stack
         self.s0h = tree.get_head(self.s0.tid)[0] if self.s0 else None
         self.s0l = tree.get_leftmost_child(self.s0.tid) if self.s0 else None
@@ -283,6 +279,10 @@ class ParserState(object):
         self.q0l = tree.get_leftmost_child(self.q0.tid) if self.q0 else None
 
     def __getitem__(self, key): #key: enums.FeatureTemplateName
+        """ Overloading delle []: permette di accedere agli attributi dell'oggetto
+        utilizzando i nomi delle possibili feature, definite nell'enumerativo
+        FeatureTemplateName """
+
         try:
             if key is enums.FeatureTemplateName.POS_S0:
                 return self.s0.pos
@@ -308,7 +308,6 @@ class ParserState(object):
                 return self.s0l[1]
             if key is enums.FeatureTemplateName.DEP_S0:
                 return self.tree[self.s0.tid].dtype
-#                return self.s0.dtype ###curr
             if key is enums.FeatureTemplateName.DEP_S0R:
                 return self.s0r[1]
             if key is enums.FeatureTemplateName.DEP_Q0L:

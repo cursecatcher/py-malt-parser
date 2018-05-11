@@ -6,10 +6,14 @@ import enums
 
 
 class Treebank(object):
+    """ Permette di leggere un treebank (annotato o meno) da file,
+    o di crearne uno fornendo gli alberi a dipendenze """
+
     def __init__(self):
         """ """
-        self.__labelled = None
-        self.__sentences = list()
+        self.__labelled = None      #indica il tipo di treebank da parsare
+        self.__sentences = list()   #contenuto del treebank letto da file
+        self.__trees = list()       #contenuto del treebank da persistere su file
         print("Init Treebank: {}".format(self))
 
     def parse(self, tb_file, labelled=True):
@@ -20,15 +24,19 @@ class Treebank(object):
         return self
 
     def add_sentence(self, tree):
-        self.__sentences.append(tree)
+        self.__trees.append(tree)
 
     def persist(self, output_file):
+        """ Scrive il contenuto del treebank su un file """
         with open(output_file, "w") as of:
-            for tree in self.__sentences:
+            for tree in self.__trees:
                 of.write("{}\n".format(tree))
 
 
     def __iter__(self):
+        """ Rende l'oggetto iterabile; se il treebank è etichettato, il metodo
+        restituisce una coppia (frase, albero), se non è etichettato restituisce
+        solo la frase """
         for sentence in self.__sentences:
             yield (sentence, tree(sentence)) if self.__labelled else sentence
 
@@ -59,6 +67,8 @@ class Treebank(object):
 
 
 class tree(object):
+    """ Rappresenta un albero a dipendenze """
+
     def __init__(self, sentence, set_dependencies=True):
         #init nodi dell'albero: root + un nodo per token
         self.nodes = [token_node(id=index) for index in range(len(sentence) + 1)]
@@ -66,7 +76,7 @@ class tree(object):
 
         #valorizzo nodi
         for index, token in enumerate(sentence, 1):
-            self.nodes[index].init(token.wordform, token.lemma, token.pos, token.xpos, token.feats)#, token.head, token.dtype)
+            self.nodes[index].init(token.wordform, token.lemma, token.pos, token.xpos, token.feats)
 
             if set_dependencies:
                 self.add_dependency(token.head, index, token.dtype)
@@ -74,6 +84,7 @@ class tree(object):
                 self.nodes[index].dtype = token.dtype
 
     def __eq__(self, other):
+        """ Implementa l'uguaglianza tra due alberi rappresentanti la stessa frase """
         return set(self.dependencies) == set(other.dependencies)
 
     def get_sentence(self):
@@ -146,9 +157,9 @@ class tree(object):
         return self.nodes[key] if key else None
 
     def __str__(self):
-        for (h, d, r) in self.dependencies:
-            self.nodes[d].head = h
-            self.nodes[d].dtype = r
+        # for (h, d, r) in self.dependencies:
+        #     self.nodes[d].head = h
+        #     self.nodes[d].dtype = r
         return "\n".join([str(node) for node in self.nodes[1:]]) + "\n"
 
 

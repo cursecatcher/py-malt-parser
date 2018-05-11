@@ -6,6 +6,7 @@ from sklearn import preprocessing
 from treebank import tree
 
 class FeatureEncoder(object):
+    """ """
     def __init__(self):
         self.__mapping = {
             enums.FeatureType.POS: {None: 0},
@@ -55,6 +56,7 @@ class FeatureEncoder(object):
 
 
 class FeatureTemplate(object):
+    """ """
     def __init__(self, *args):
         self.__features = {f.name: f for f in args}
 
@@ -77,9 +79,9 @@ class Feature(object):
 
     def __init__(self, feature_name, value=None, feature_type=None):
         """Inizializza una feature"""
-        self.__name = feature_name #enum
-        self.__type = feature_type #enum
-        self.__value = value
+        self.__name = feature_name #enum FeatureTemplateName
+        self.__type = feature_type #enum FeatureType
+        self.__value = value 
 
     @property
     def name(self):

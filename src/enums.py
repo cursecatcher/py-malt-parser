@@ -4,7 +4,7 @@
 import enum
 
 class FeatureTemplateName(enum.Enum):
-    """  """
+    """ Indica le possibili feature che è possibile estrarre dalla configurazione  """
     POS_S0 = 0
     POS_S1 = 1
     POS_Q0 = 2
@@ -20,7 +20,7 @@ class FeatureTemplateName(enum.Enum):
     DEP_Q0L = 12
 
 class FeatureModel(enum.Enum):
-    """ """
+    """ Indica le feature utilizzate dal modello   """
     F = FeatureTemplateName.POS_S0, FeatureTemplateName.POS_S1, FeatureTemplateName.POS_Q0, \
         FeatureTemplateName.POS_Q1, FeatureTemplateName.POS_Q2, FeatureTemplateName.POS_Q3, \
         FeatureTemplateName.WF_S0, FeatureTemplateName.WF_Q0, FeatureTemplateName.WF_Q1, \
@@ -29,7 +29,8 @@ class FeatureModel(enum.Enum):
 
 
 class FeatureType(enum.Enum):
-    POS = 0
+    """ Indica i possibili tipi di feature utilizzati """
+    POS = 0             # part of speech
     LEMMA = 1
     DEPENDENCY = 2
 
@@ -43,6 +44,8 @@ class FeatureType(enum.Enum):
         return FeatureType.DEPENDENCY
 
 class ParserAction(enum.Enum):
+    "Indica le azioni eseguibili dal parser"
+
     SHIFT = 0
     LEFT = 1
     RIGHT = 2
@@ -67,6 +70,7 @@ class ParserAction(enum.Enum):
         return ParserAction.SHIFT
 
 class RelationType(enum.Enum):
+    """ Indica i possibili tipi di dipendenze accettate """
     NONAME = 0
     NSUBJ = 1
     DOBJ = 2
