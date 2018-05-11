@@ -24,8 +24,8 @@ class FeatureModel(enum.Enum):
     F = FeatureTemplateName.POS_S0, FeatureTemplateName.POS_S1, FeatureTemplateName.POS_Q0, \
         FeatureTemplateName.POS_Q1, FeatureTemplateName.POS_Q2, FeatureTemplateName.POS_Q3, \
         FeatureTemplateName.WF_S0, FeatureTemplateName.WF_Q0, FeatureTemplateName.WF_Q1, \
-        FeatureTemplateName.DEP_S0L, FeatureTemplateName.DEP_S0, FeatureTemplateName.DEP_S0R, \
-        FeatureTemplateName.DEP_Q0L
+        FeatureTemplateName.DEP_S0L,  FeatureTemplateName.DEP_S0R, \
+        FeatureTemplateName.DEP_Q0L, FeatureTemplateName.DEP_S0,
 
 
 class FeatureType(enum.Enum):
@@ -73,6 +73,9 @@ class RelationType(enum.Enum):
 
     @classmethod
     def get_relation_type(cls, relation):
+        if isinstance(relation, RelationType):
+            return relation
+
         if relation == "nsubj":
             return RelationType.NSUBJ
         if relation == "dobj":

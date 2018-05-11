@@ -4,17 +4,17 @@
 import enums
 
 from sentence import *
-from features import Features, FeatureEncoder
 from enums import ParserAction, RelationType
-
 import features2 as f2
 
-#oracle
-from treebank import TreebankParser, tree
-from sklearn.externals import joblib
+from treebank import Treebank, tree
 from sklearn.linear_model import LogisticRegression
 import collections #for Counter
 
+class ParsingError(Exception):
+    def __init__(self, message, partial_prediction):
+        self.message = message
+        self.tree = partial_prediction
 
 
 class Parser(object):
@@ -30,6 +30,7 @@ class Parser(object):
         self.__queue = [token for token in sentence]
         self.__tree = tree(sentence, False) #numero di nodi pari al numero di parole
         self.__history = list()
+
         return self
 
     def fit_oracle(self, training_set):
@@ -43,7 +44,7 @@ class Parser(object):
             avail_actions = self.__get_avail_actions()
 
             if len(avail_actions) == 0:
-                raise Exception("Unable to parse the sentence")
+                raise ParsingError("Unable to parse the sentence", self.__tree)
 
             configuration = ParserState(self)
             action = self.oracle.predict(configuration)
@@ -114,6 +115,7 @@ class Parser(object):
         self.__stack.append(self.__queue[0])
         self.__queue = self.__queue[1:]
         self.__history.append(ParserAction.SHIFT)
+#        print("shift")
 
     def left(self, opt):
         """ Crea dipendenza tra la prossima parola nella lista e quella
@@ -123,6 +125,7 @@ class Parser(object):
         head = self.__queue[0]
         self.__tree.add_dependency(head.tid, dependent.tid, opt) #uso gli id
         self.__history.append(ParserAction.get_parser_action("left", opt))
+#        print("left")
 
 
     def right(self, opt):
@@ -135,6 +138,7 @@ class Parser(object):
         self.__queue.insert(0, head)
         self.__tree.add_dependency(head.tid , dependent.tid, opt) #uso gli id
         self.__history.append(ParserAction.get_parser_action("right", opt))
+#        print("right")
 
     def get_dependencies_by_head(self, head):
         return self.__tree.get_dependencies_by_head(head)
@@ -165,8 +169,12 @@ class Parser(object):
     def get_transitions(sentence, tree):
         parser = Parser().init(sentence)
         transitions = list()
+        i = 0
 
         while not parser.is_final_state():
+            i += 1
+            if i == 30:
+                break
             do_shift = True
 
             transitions.append(ParserState(parser))
@@ -195,7 +203,6 @@ class Oracle(object):
         #no svm perchè "hard to scale to dataset with more than a couple of 10000 samples" [cit. documentazione]
         self.__model = LogisticRegression(multi_class="multinomial", solver="newton-cg")
         self.__encoder = f2.FeatureEncoder()
-    #    self.__encoder = FeatureEncoder()
 
     @property
     def encoder(self):
@@ -221,20 +228,14 @@ class Oracle(object):
     def fit(self, training_set):
         examples, labels = list(), list()
 
-        for sentence, dep_tree in TreebankParser(training_set):
+        for sentence, dep_tree in Treebank().parse(training_set):
             transitions, actions = Parser.get_transitions(sentence, dep_tree)
 
             for t, a in zip(transitions, actions):
                 features = self.encoder.encodeFeatures(t)
                 examples.extend(features)
-                # print(examples)
-                # print(features)
-                #print(features)
-#                examples.extend(features)
-                labels.extend([a.value] * len(features))
 
-#            examples.extend([self.encoder.encodeFeatures(c) for c in transitions])
-#            labels.extend([label.value for label in actions])
+                labels.extend([a.value] * len(features))
 
         examples = self.encoder.fit_oneHotEncoding(examples)
         print("Training model with {} examples".format(len(labels)))
@@ -252,26 +253,14 @@ class Oracle(object):
            predictions[self.__model.predict(encoded)[0]] += 1
 
         return ParserAction(predictions.most_common(1)[0][0])
-        # print(feature_vectors, flush=True)
-        # feature_vectors = self.encoder.oneHotEncoding(feature_vectors)#.toarray()
-        # action = self.__model.predict(feature_vectors)
-
-#        return ParserAction(action[0])
-
 
 
     def __predict(self, configuration):
         """Data una configurazione del parser, predice l'azione da eseguire"""
-#        print(type(configuration))
+
         feature_vector = self.encoder.encodeFeature(configuration)
-#        print(len(feature_vector.toarray()[0]))
         action = self.__model.predict(feature_vector.toarray())
         return ParserAction(action[0])
-
-
-
-    def load_model(self, model_file):
-        self.__model = joblib.loads(model_file)
 
 
 
@@ -318,7 +307,8 @@ class ParserState(object):
             if key is enums.FeatureTemplateName.DEP_S0L:
                 return self.s0l[1]
             if key is enums.FeatureTemplateName.DEP_S0:
-                return self.s0.dtype
+                return self.tree[self.s0.tid].dtype
+#                return self.s0.dtype ###curr
             if key is enums.FeatureTemplateName.DEP_S0R:
                 return self.s0r[1]
             if key is enums.FeatureTemplateName.DEP_Q0L:

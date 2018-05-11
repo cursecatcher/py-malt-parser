@@ -3,20 +3,18 @@
 
 
 import sys
-#import tree
-from parser import Parser, Oracle
-from treebank import TreebankParser, tree
-from features import FeatureEncoder
+
+from parser import Parser, Oracle, ParsingError
+from treebank import Treebank, tree
 from evaluation import Evaluation
-import random
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.externals import joblib
 
 from timeit import default_timer as timer
+import random
 
-import features2 as f2
 
 
 def format_time(time):
@@ -26,65 +24,53 @@ def format_time(time):
 
 
 if __name__ == "__main__":
-    if False:
-        print("Test features2")
+    if len(sys.argv) < 5:
+        sys.exit("Usage: ./{} training_set dev_set test_set output_file".format(sys.argv[0]))
 
-        tb = TreebankParser(sys.argv[1])
-        enc = f2.FeatureEncoder()
-        oracle = Oracle().fit2(sys.argv[1])
+    training_set = sys.argv[1]
+    dev_set = sys.argv[2]
+    test_set = sys.argv[3]
+    result_file = sys.argv[4]
 
-        # for index, (sentence, dep_tree) in enumerate(tb):
-        #     transitions, labels = Parser.get_transitions(sentence, dep_tree)
-        #     encoded = [enc.encodeFeatures(t) for t in transitions]
-        #    print(encoded)
+################################################################################
 
+    print("Training parser on {}... ".format(training_set), flush=True)
+    start = timer()
+    parser = Parser().fit_oracle(training_set)
+    print("Training completed in {}".format(format_time(timer() - start)), flush=True)
 
-    if False:
-        tb = TreebankParser(sys.argv[1])
-        enc = FeatureEncoder()
+    print("Test parser on {}".format(dev_set), flush=True)
+    tb = Treebank().parse(dev_set)
+    evaluation = Evaluation(num_classes=3)
 
-        print("Test Parser.get_transitions")
-        examples, labels = list(), list()
-
-        for index, (sentence, dep_tree) in enumerate(tb):
-    #        print("{}. {}".format(index, sentence))
-            transitions, _labels = Parser.get_transitions(sentence, dep_tree)
-            if index > 7:
-                print("{} actions: {}".format(len(transitions), [label.value for label in _labels]))
-
-            examples.extend([enc.encode(t) for t in transitions])
-            labels.extend([l.value for l in _labels])
-
-            if index == 10:
-                break
-
-        examples = enc.oneHotEncoding(examples)
-        print(type(examples))
-        print("\n\n")
-
-    if True:
-        print("Test Parser.fit_oracle", flush=True)
-        start = timer()
-        parser = Parser().fit_oracle(sys.argv[1])
-        print("Parser.fit_oracle completed in {}".format(format_time(timer() - start)), flush=True)
-
-        print("Test Oracle.predict", flush=True)
-
-        tb = TreebankParser(sys.argv[2])
-        evaluation = Evaluation(num_classes=3)
-
-        for index, (sentence, gold_tree) in enumerate(tb):
+    for index, (sentence, gold_tree) in enumerate(tb):
+        try:
             predicted_tree = parser.parse(sentence)
-            # if index % 50 == 0:
-            #     print("\nSentence: {}".format(sentence))
-            #     print("Gold tree: {}".format(gold_tree.dependencies))
-            #     print("Predicted: {}".format(predicted_tree.dependencies))
-            #     print("Are they equals? {}".format(gold_tree == predicted_tree))
             evaluation.update(gold_tree, predicted_tree)
+        except:
+            print("Can't parse sentence {}".format(index))
 
-        print("Exact match: {} ({}/{})".format(evaluation.exact_match, evaluation.num_exact_tree, evaluation.tot_tree))
-        print("Unlabelled attachment score: {}".format(evaluation.unlabelled_attachment_score))
-        print("Labelled attachment score: {}".format(evaluation.labelled_attachment_score))
-    #    print("Confusion matrix: {}".format(evaluation.confusion_matrix))
-        print("Precision: {}".format(evaluation.get_precision()))
-        print("Recall: {}".format(evaluation.get_recall()))
+    print("\nExact match: {} ({}/{})".format(evaluation.exact_match, evaluation.num_exact_tree, evaluation.tot_tree))
+    print("Unlabelled attachment score: {}".format(evaluation.unlabelled_attachment_score))
+    print("Labelled attachment score: {}".format(evaluation.labelled_attachment_score))
+    print("Precision: {}".format(evaluation.get_precision()))
+    print("Recall: {}\n".format(evaluation.get_recall()))
+
+################################################################################
+
+    print("Testing parser on {}".format(test_set))
+
+    tb = Treebank().parse(test_set, labelled=False)
+    predictions = Treebank()
+
+    for index, sentence in enumerate(tb):
+        try:
+            predicted_tree = parser.parse(sentence)
+        except ParsingError as pe:
+            print("Can't parse sentence {}".format(index))
+            predicted_tree = pe.tree
+
+        predictions.add_sentence(predicted_tree)
+    else:
+        predictions.persist(result_file)
+        print("Results wrote in {}".format(result_file))

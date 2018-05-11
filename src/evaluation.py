@@ -50,6 +50,7 @@ class Evaluation(object):
         return self.__exact[0] / self.__exact[1] * 100
 
     def __update_cm(self, gold_tree, predicted_tree):
+    #    print(gold_tree.dependencies)
         gold = {(h, d): r for (h, d, r) in gold_tree.dependencies}
         pred = {(h, d): r for (h, d, r) in predicted_tree.dependencies}
         #insieme di dipendenze senza info sul tipo di relazione
