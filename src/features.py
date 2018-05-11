@@ -1,21 +1,92 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
+import enums
 from sklearn import preprocessing
-from enums import FeatureType
+from treebank import tree
+
+class FeatureEncoder(object):
+    def __init__(self):
+        self.__mapping = {
+            enums.FeatureType.POS: {None: 0},
+            enums.FeatureType.LEMMA: {None: 0},
+            enums.FeatureType.DEPENDENCY: {None: 0}
+        }
+        self.__ohe = preprocessing.OneHotEncoder(handle_unknown="ignore")
 
 
-class feature(object):
+    def encodeFeatures(self, c):
+        """ Prende configurazione c del parser e costruisce i relativi feature vector
+        a numeri interi """
+
+        features = list()
+
+        for template in enums.FeatureModel:
+            current = [ Feature(f, c[f], enums.FeatureType.get_feature_type(f)) for f in template.value ]
+            features.append( FeatureTemplate(*current) )
+
+        #restituisce lista di feature codificate
+        return [self.encodeTemplate(feature) for feature in features]
+
+
+    def encodeTemplate(self, template):
+        """Codifica un oggetto FeatureTemplate in un vettore di numeri interi"""
+
+        feature_vector = [0] * len(template)
+
+        for feature in template.feature_vector():
+            if feature.type is not None:
+                currdict = self.__mapping[feature.type]
+
+                if feature.value not in currdict:
+                    currdict[feature.value] = len(currdict)
+                feature_vector[feature.name.value] = currdict[feature.value]
+
+        return feature_vector
+
+    def fit_oneHotEncoding(self, X):
+        print({k.name: len(self.__mapping[k]) for k in self.__mapping})
+        return self.__ohe.fit_transform(X)
+
+    def oneHotEncoding(self, feature_vector):
+    #    print(feature_vector)
+        return self.__ohe.transform([feature_vector])
+
+
+
+class FeatureTemplate(object):
+    def __init__(self, *args):
+        self.__features = {f.name: f for f in args}
+
+    def feature_vector(self):
+        """Restituisce il feature vector ->
+        lista in cui ogni elemento è di tipo Feature e
+        solo le feature passate al costruttore sono istanziate,
+        mentre le altre sono a None"""
+        return [\
+            self.__features[template_name] if template_name in self.__features \
+            else Feature(template_name) \
+            for template_name in enums.FeatureTemplateName\
+        ]
+
+    def __len__(self):
+        return len(enums.FeatureTemplateName)
+
+class Feature(object):
     """Descrive una singola feature: tipo di feature e valore associato"""
 
-    def __init__(self, feature_type, value):
+    def __init__(self, feature_name, value=None, feature_type=None):
         """Inizializza una feature"""
+        self.__name = feature_name #enum
         self.__type = feature_type #enum
         self.__value = value
 
     @property
-    def ftype(self):
+    def name(self):
+        return self.__name
+
+    @property
+    def type(self):
         return self.__type
 
     @property
@@ -24,79 +95,3 @@ class feature(object):
 
     def __str__(self):
         return "({}: {})".format(self.__type, self.__value)
-
-
-class FeatureEncoder(object):
-    """Le feature raw sono stringhe. Per utilizzare i classificatori è
-    necessario convertirle in valori numerici"""
-
-    def __init__(self):
-        #mapping da feature categoriali (?) a interi
-        self.__pos = {None: 0} #init smart, forse
-        self.__lemmas = {None: 0}
-        self.__deps = {None: 0}
-
-        self.__ohe = preprocessing.OneHotEncoder(handle_unknown="ignore")
-
-    def encodeFeature(self, configuration):
-        ### da usare in fase di predict
-        fv = self.encode(configuration)
-        return self.__ohe.transform([fv]) #potrebbe dare problemi
-
-    def encode(self, configuration):
-        raw_vector = Features(configuration).feature_vector()
-        feature_vector = [0] * len(raw_vector)
-
-        for index, f in enumerate(raw_vector):
-            curr_dict = self.__deps
-
-            if f.ftype is FeatureType.POS:
-                curr_dict = self.__pos
-            elif f.ftype is FeatureType.LEMMA:
-                curr_dict = self.__lemmas
-
-            if f.value not in curr_dict:
-                #assegna numeri progressivi ai possibili valori delle feature
-                curr_dict[f.value] = len(curr_dict)
-
-            feature_vector[index] = curr_dict[f.value]
-
-        return feature_vector
-
-
-    def oneHotEncoding(self, X):
-        print("pos: {}".format(len(self.__pos)))
-        print("lem: {}".format(len(self.__lemmas)))
-        print("dep: {}".format(len(self.__deps)))
-        self.__ohe.fit(X)
-        return self.__ohe.transform(X)
-
-
-class Features(object):
-    """Oggetto che descrive una configurazione del parser. Le feature utilizzate sono..."""
-
-    def __init__(self, state):
-        self.pos_s0 = feature(FeatureType.POS, state.s0.pos if state.s0 else None)
-        self.pos_s1 = feature(FeatureType.POS, state.s1.pos if state.s1 else None)
-        self.pos_q0 = feature(FeatureType.POS, state.q0.pos if state.q0 else None)
-        self.pos_q1 = feature(FeatureType.POS, state.q1.pos if state.q1 else None)
-        self.pos_q2 = feature(FeatureType.POS, state.q2.pos if state.q2 else None)
-        self.pos_q3 = feature(FeatureType.POS, state.q3.pos if state.q3 else None)
-
-#        self.wf_s0h = feature(FeatureType.LEMMA, state.s0h.lemma if state.s0h else None)
-        self.wf_s0 = feature(FeatureType.LEMMA, state.s0.lemma if state.s0 else None)
-        self.wf_q0 = feature(FeatureType.LEMMA, state.q0.lemma if state.q0 else None)
-        self.wf_q1 = feature(FeatureType.LEMMA, state.q1.lemma if state.q1 else None)
-
-        self.dep_s0l = feature(FeatureType.DEPENDENCY, state.s0l[1] if state.s0l else None)
-        self.dep_s0 = feature(FeatureType.DEPENDENCY, state.s0.dtype if state.s0 else None)
-        self.dep_s0r = feature(FeatureType.DEPENDENCY, state.s0r[1] if state.s0r else None)
-        self.dep_q0l = feature(FeatureType.DEPENDENCY, state.q0l[1] if state.q0l else None)
-
-
-    def feature_vector(self):
-        """Restituisce una lista di feature"""
-        return [self.pos_s0, self.pos_s1, self.pos_q0, self.pos_q1, self.pos_q2, self.pos_q3,
-                #self.wf_s0h,
-                self.wf_s0, self.wf_q0, self.wf_q1,
-                self.dep_s0l, self.dep_s0, self.dep_s0r, self.dep_q0l]
