@@ -23,17 +23,35 @@ class Parser(object):
     def __init__(self):
         self.__oracle = Oracle()
         self.__stack = list()
-        self.__queue = list()
+        self.__buffer = list()
         self.__tree = None
         self.__history = list()
 
     def init(self, sentence):
         self.__stack = [Token(0)] #root
-        self.__queue = [token for token in sentence]
+        self.__buffer = [token for token in sentence]
         self.__tree = tree(sentence, set_dependencies=False) #numero di nodi pari al numero di parole
         self.__history = list()
 
         return self
+
+    @property
+    def oracle(self):
+        return self.__oracle
+
+
+    def get_tree(self):
+        return self.__tree
+
+    def get_stack(self):
+        return list(self.__stack)
+
+    def get_buffer(self):
+        return list(self.__buffer)
+
+    def history(self):
+        return self.__history
+
 
     def fit_oracle(self, training_set):
         self.__oracle.fit(training_set)
@@ -42,7 +60,7 @@ class Parser(object):
     def parse(self, sentence):
         self.init(sentence)
 
-        while not self.is_final_state():
+        while not self.__is_final_state():
             avail_actions = self.__get_avail_actions()
 
             if len(avail_actions) == 0:
@@ -51,12 +69,8 @@ class Parser(object):
             configuration = ParserState(self)
             action = self.oracle.predict(configuration)
 
-            if action in avail_actions:
-                #ci fidiamo dell'oracolo
-                self.__exec(action)
-            else:
-                #azione random fattibile --> shift
-                self.shift()
+            if action in avail_actions: self.__exec(action)
+            else:                       self.shift()
 
         return self.__tree
 
@@ -83,39 +97,18 @@ class Parser(object):
         """Restituisce l'insieme delle azioni fattibili in base allo stato del parser"""
         moves = set()
 
-        if self.queue_size() > 0:
+        if self.buffer_size() > 0:
             moves.add(ParserAction.SHIFT)
             if self.stack_size() > 0:
                 moves.update({action for action in ParserAction})
 
         return moves
 
-    @property
-    def oracle(self):
-        return self.__oracle
-
-    def history(self):
-        return self.__history
-
-    def __str__(self):
-        return "-> stack: {}\nqueue: {}".format(
-        [token.tid for token in self.__stack], [token.tid for token in self.__queue])
-
-
-    def get_tree(self):
-        return self.__tree
-
-    def get_stack(self):
-        return list(self.__stack)
-
-    def get_queue(self):
-        return list(self.__queue)
-
     def shift(self):
         """ Estrae prossima parola dalla lista e la pusha sullo stack """
 
-        self.__stack.append(self.__queue[0])
-        self.__queue = self.__queue[1:]
+        self.__stack.append(self.__buffer[0])
+        self.__buffer = self.__buffer[1:]
         self.__history.append(ParserAction.SHIFT)
 #        print("shift")
 
@@ -124,7 +117,7 @@ class Parser(object):
         in cima allo stack, rimuovendola dalla pila."""
 
         dependent = self.__stack.pop()
-        head = self.__queue[0]
+        head = self.__buffer[0]
         self.__tree.add_dependency(head.tid, dependent.tid, opt) #uso gli id
         self.__history.append(ParserAction.get_parser_action("left", opt))
 #        print("left")
@@ -135,9 +128,9 @@ class Parser(object):
         Rimuove la parola dalla lista, poppa lo stack e inserisce tale parola nella lista,
         in prima posizione """
 
-        dependent, self.__queue = self.__queue[0], self.__queue[1:]
+        dependent, self.__buffer = self.__buffer[0], self.__buffer[1:]
         head = self.__stack.pop()
-        self.__queue.insert(0, head)
+        self.__buffer.insert(0, head)
         self.__tree.add_dependency(head.tid , dependent.tid, opt) #uso gli id
         self.__history.append(ParserAction.get_parser_action("right", opt))
 #        print("right")
@@ -149,23 +142,23 @@ class Parser(object):
     def next_stack(self):
         return self.__stack[-1] if self.stack_size() > 0 else False
 
-    def next_queue(self):
-        return self.__queue[0] if self.queue_size() > 0 else False
+    def next_buffer(self):
+        return self.__buffer[0] if self.buffer_size() > 0 else False
 
     def stack_size(self):
         return len(self.__stack)
 
-    def queue_size(self):
-        return len(self.__queue)
+    def buffer_size(self):
+        return len(self.__buffer)
     #</partially_useless_methods>
 
 
 
-    def is_final_state(self):
+    def __is_final_state(self):
         """Condizione di terminazione del parsing: lo stack contiene solo la
         radice e la coda è vuota, in quanto tutte le parole sono state analizzate"""
 
-        return len(self.__queue) == 0 and len(self.__stack) == 1
+        return len(self.__buffer) == 0 and len(self.__stack) == 1
 
     @staticmethod
     def get_transitions(sentence, tree):
@@ -176,13 +169,13 @@ class Parser(object):
         parser = Parser().init(sentence)
         transitions = list()
 
-        while not parser.is_final_state():
+        while not parser.__is_final_state():
             do_shift = True
 
             transitions.append(ParserState(parser))
 
-            if parser.stack_size() > 0 and parser.queue_size() > 0:
-                q, s = parser.next_queue().tid, parser.next_stack().tid
+            if parser.stack_size() > 0 and parser.buffer_size() > 0:
+                q, s = parser.next_buffer().tid, parser.next_stack().tid
                 #verifico applicabilità left
                 rel = tree.dependency_exists(q, s)
                 if rel:
@@ -195,10 +188,11 @@ class Parser(object):
                         parser.right(rel)
                         do_shift = False
             #verifico applicabilità shift
-            if do_shift and parser.queue_size() > 0:
+            if do_shift and parser.buffer_size() > 0:
                 parser.shift()
 
         return (transitions, parser.history())
+
 
 class Oracle(object):
     def __init__(self):
@@ -260,23 +254,31 @@ class ParserState(object):
         """Inizializza l'oggetto estraendo gli elementi necessari dalle strutture dati
         del parser: stack, lista e albero parziale. """
 
-        stack, queue = parser.get_stack(), parser.get_queue()
+        stack, buffer = parser.get_stack(), parser.get_buffer()
         tree = parser.get_tree()
 
+        def get(iterable, index, threshold=None):
+            if threshold is None:
+                threshold = index if index >= 0 else abs(index+1)
+
+            return iterable[index] if len(iterable) > threshold else None
+
         #feature statiche
-        self.s0 = stack[-1] if len(stack) > 0 else None
-        self.s1 = stack[-2] if len(stack) > 1 else None
-        self.q0 = queue[0] if len(queue) > 0 else None
-        self.q1 = queue[1] if len(queue) > 1 else None
-        self.q2 = queue[2] if len(queue) > 2 else None
-        self.q3 = queue[3] if len(queue) > 3 else None
+        self.s0 = get(stack, -1)
+        self.s1 = get(stack, -2)
+        self.q0 = get(buffer, 0)
+        self.q1 = get(buffer, 1)
+        self.q2 = get(buffer, 2)
+        self.q3 = get(buffer, 3)
+
+        def get(tree_method, token):
+            return tree_method(token.tid) if token else None
 
         #feature dinamiche
-        #head del top dello stack
-        self.s0h = tree.get_head(self.s0.tid)[0] if self.s0 else None
-        self.s0l = tree.get_leftmost_child(self.s0.tid) if self.s0 else None
-        self.s0r = tree.get_rightmost_child(self.s0.tid) if self.s0 else None
-        self.q0l = tree.get_leftmost_child(self.q0.tid) if self.q0 else None
+        self.s0h = get(tree.get_head, self.s0)
+        self.s0l = get(tree.get_leftmost_child, self.s0)
+        self.s0r = get(tree.get_rightmost_child, self.s0)
+        self.q0l = get(tree.get_leftmost_child, self.q0)
 
     def __getitem__(self, key): #key: enums.FeatureTemplateName
         """ Overloading delle []: permette di accedere agli attributi dell'oggetto

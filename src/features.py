@@ -27,10 +27,10 @@ class FeatureEncoder(object):
             features.append( FeatureTemplate(*current) )
 
         #restituisce lista di feature codificate
-        return [self.encodeTemplate(feature) for feature in features]
+        return [self.__encodeTemplate(feature) for feature in features]
 
 
-    def encodeTemplate(self, template):
+    def __encodeTemplate(self, template):
         """Codifica un oggetto FeatureTemplate in un vettore di numeri interi"""
 
         feature_vector = [0] * len(template)
@@ -56,15 +56,17 @@ class FeatureEncoder(object):
 
 
 class FeatureTemplate(object):
-    """ """
+    """ La classe FeatureTemplate permette di generare i feature vector necessari
+    per l'addestramento dell'oracolo e la successiva classificazione.  """
+
     def __init__(self, *args):
+        """ Costruttore della classe FeatureTemplate. """
         self.__features = {f.name: f for f in args}
 
     def feature_vector(self):
-        """Restituisce il feature vector ->
-        lista in cui ogni elemento è di tipo Feature e
-        solo le feature passate al costruttore sono istanziate,
-        mentre le altre sono a None"""
+        """ Restituisce il feature vector del template; è una lista di oggetti Feature in
+        cui solo le feature passate al costruttore sono istanziate, mentre le altre
+        sono a None """
         return [\
             self.__features[template_name] if template_name in self.__features \
             else Feature(template_name) \
@@ -72,6 +74,7 @@ class FeatureTemplate(object):
         ]
 
     def __len__(self):
+        """ Dimensione del feature vector """
         return len(enums.FeatureTemplateName)
 
 class Feature(object):
@@ -81,7 +84,7 @@ class Feature(object):
         """Inizializza una feature"""
         self.__name = feature_name #enum FeatureTemplateName
         self.__type = feature_type #enum FeatureType
-        self.__value = value 
+        self.__value = value
 
     @property
     def name(self):

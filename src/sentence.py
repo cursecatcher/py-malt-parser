@@ -10,6 +10,7 @@ class Sentence(object):
         self.__tokens = list()
 
     def add_token(self, token):
+        """Aggiunge un token alla frase """
         self.__tokens.append(token)
 
     def clear(self):
@@ -30,7 +31,7 @@ class Sentence(object):
 class Token(object):
     """ """
     def __init__(self, id, wordform=None, lemma=None, pos=None, xpos=None, feats=None, head=None, dep=None):
-        self.__id = int(id) if id is not None else None 
+        self.__id = int(id) if id is not None else None
         self.__wordform = wordform
         self.__lemma = lemma
         self.__pos = pos

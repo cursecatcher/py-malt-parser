@@ -3,30 +3,6 @@
 
 import enum
 
-class FeatureTemplateName(enum.Enum):
-    """ Indica le possibili feature che è possibile estrarre dalla configurazione  """
-    POS_S0 = 0
-    POS_S1 = 1
-    POS_Q0 = 2
-    POS_Q1 = 3
-    POS_Q2 = 4
-    POS_Q3 = 5
-    WF_S0 = 6
-    WF_Q0 = 7
-    WF_Q1 = 8
-    DEP_S0L = 9
-    DEP_S0 = 10
-    DEP_S0R = 11
-    DEP_Q0L = 12
-
-class FeatureModel(enum.Enum):
-    """ Indica le feature utilizzate dal modello   """
-    F = FeatureTemplateName.POS_S0, FeatureTemplateName.POS_S1, FeatureTemplateName.POS_Q0, \
-        FeatureTemplateName.POS_Q1, FeatureTemplateName.POS_Q2, FeatureTemplateName.POS_Q3, \
-        FeatureTemplateName.WF_S0, FeatureTemplateName.WF_Q0, FeatureTemplateName.WF_Q1, \
-        FeatureTemplateName.DEP_S0L,  FeatureTemplateName.DEP_S0R, \
-        FeatureTemplateName.DEP_Q0L, FeatureTemplateName.DEP_S0,
-
 
 class FeatureType(enum.Enum):
     """ Indica i possibili tipi di feature utilizzati """
@@ -42,6 +18,7 @@ class FeatureType(enum.Enum):
             return FeatureType.LEMMA
 
         return FeatureType.DEPENDENCY
+
 
 class ParserAction(enum.Enum):
     "Indica le azioni eseguibili dal parser"
@@ -69,6 +46,7 @@ class ParserAction(enum.Enum):
 
         return ParserAction.SHIFT
 
+
 class RelationType(enum.Enum):
     """ Indica i possibili tipi di dipendenze accettate """
     NONAME = 0
@@ -85,3 +63,31 @@ class RelationType(enum.Enum):
         if relation == "dobj":
             return RelationType.DOBJ
         return RelationType.NONAME
+
+
+class FeatureTemplateName(enum.Enum):
+    """ Indica le possibili feature che è possibile estrarre dalla configurazione  """
+    POS_S0 = 0      #POS token in cima allo stack
+    POS_S1 = 1      #POS token in seconda posizione nello stack
+    POS_Q0 = 2      #POS primo token nella lista
+    POS_Q1 = 3      #POS secondo token nella lista
+    POS_Q2 = 4      # "  terzo      "   "      "
+    POS_Q3 = 5      # "  quarto      "   "      "
+    WF_S0 = 6       # wordform del token in cima allo stack
+    WF_Q0 = 7       # wordform del primo token della lista
+    WF_Q1 = 8       # wordform del secondo token della lista
+    DEP_S0L = 9     #
+    DEP_S0 = 10     #
+    DEP_S0R = 11    #
+    DEP_Q0L = 12    #
+
+class FeatureModel(enum.Enum):
+    """ Descrive i feature vectors utilizzati dal modello """
+    F = FeatureTemplateName.POS_S0, FeatureTemplateName.POS_S1, FeatureTemplateName.POS_Q0, \
+        FeatureTemplateName.POS_Q1, FeatureTemplateName.POS_Q2, FeatureTemplateName.POS_Q3, \
+        FeatureTemplateName.WF_S0, FeatureTemplateName.WF_Q0, FeatureTemplateName.WF_Q1, \
+        FeatureTemplateName.DEP_S0L,  FeatureTemplateName.DEP_S0R, \
+        FeatureTemplateName.DEP_Q0L, FeatureTemplateName.DEP_S0,
+    # F1 = FeatureTemplateName.POS_S0, FeatureTemplateName.DEP_S0, \
+    #     FeatureTemplateName.DEP_S0L,  FeatureTemplateName.DEP_S0R
+    # F2 = FeatureTemplateName.POS_Q0, FeatureTemplateName.DEP_Q0L, FeatureTemplateName.POS_Q1

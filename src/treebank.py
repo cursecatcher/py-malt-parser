@@ -13,7 +13,7 @@ class Treebank(object):
         """ """
         self.__labelled = None      #indica il tipo di treebank da parsare
         self.__sentences = list()   #contenuto del treebank letto da file
-        self.__trees = list()       #contenuto del treebank da persistere su file
+        self.__trees = list()       #contenuto del treebank in fase di creazione
         print("Init Treebank: {}".format(self))
 
     def parse(self, tb_file, labelled=True):
@@ -41,8 +41,7 @@ class Treebank(object):
             yield (sentence, tree(sentence)) if self.__labelled else sentence
 
     def __get_sentence(self, filename):
-        """Legge una frase dal treebank e la restituisce sottoforma di lista di liste;
-        vi è una sottolista per ciascun token della frase, e riporta informazioni quali lemma, part of speech etc"""
+        """Legge una frase dal treebank e la restituisce sottoforma di istanza della classe Sentence """
 
         sentence = Sentence()
 
@@ -115,22 +114,22 @@ class tree(object):
     def get_rightmost_child(self, tid):
         siblings = filter(lambda tupla: tupla[0] == tid, self.dependencies) #seleziono dipendenze con head == tid
         try:
-            child = max(siblings, key=lambda tupla: tupla[1]) #nodo con indice minore
+            child = max(siblings, key=lambda tupla: tupla[1]) #nodo con indice maggiore
             child = self.nodes[child[1]], child[2] #nodo figlio, relazione head-dependent
         except ValueError:
             child = None
         return child
 
-    def get_head(self, id_node):
+    def get_head(self, tid):
         """Restituisce l'head e il tipo di dipendenza del nodo passato come parametro"""
         #eccetto il nodo root, tutti i nodi hanno soltanto una head
         try:
             #l'albero è ancora in costruzione, dunque è possibile che certi nodi non abbiano ancora l'head
-            head, _, dt = next(filter(lambda triple: triple[1] == id_node, self.dependencies))
+            head, _, dt = next(filter(lambda triple: triple[1] == tid, self.dependencies))
         except StopIteration:
             head, dt = None, None
 
-        return self[head], dt
+        return self[head]#, dt
 
 
     def dependency_exists(self, head, dep, rel=None):
@@ -148,9 +147,6 @@ class tree(object):
 
     def get_dependencies_by_head(self, head):
         return self.nodes[head].siblings
-
-    def __map_relation(self, relation):
-        return relation if relation in ("nsubj", "dobj", "root") else "noname"
 
     def __getitem__(self, key):
         """ Accede al key-esimo nodo. """

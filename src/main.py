@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
 import sys
 
 from parser import Parser, Oracle, ParsingError
@@ -46,7 +45,7 @@ if __name__ == "__main__":
         try:
             predicted_tree = parser.parse(sentence)
             evaluation.update(gold_tree, predicted_tree)
-        except:
+        except ParsingError:
             print("Can't parse sentence {}".format(index))
 
     print("\nExact match: {} ({}/{})".format(evaluation.exact_match, evaluation.num_exact_tree, evaluation.tot_tree))
